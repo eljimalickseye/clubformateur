@@ -1,7 +1,8 @@
 services:
   # ---------------------------------------------------------------------------
   # 1. API Backend Laravel 13 (Nginx + PHP 8.3-FPM)
-  # Accessible sur http://localhost:8000/api/v1
+  # Port hôte isolé : 8095 (évite tout conflit avec les autres projets du VPS)
+  # Accessible sur http://180.149.199.233:8095/api/v1
   # ---------------------------------------------------------------------------
   app:
     build:
@@ -10,13 +11,13 @@ services:
     container_name: club_formateurs_api
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8095}:8000"
     env_file:
       - .env.docker
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
-      - APP_URL=http://localhost:8000
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://180.149.199.233:8095
       - DB_CONNECTION=mysql
       - DB_HOST=db
       - DB_PORT=3306
@@ -36,7 +37,7 @@ services:
       - club_network
 
   # ---------------------------------------------------------------------------
-  # 2. Base de données MySQL 8.0
+  # 2. Base de données MySQL 8.0 (Isolée dans club_network — aucun conflit port 3306)
   # ---------------------------------------------------------------------------
   db:
     image: mysql:8.0
@@ -47,8 +48,8 @@ services:
       MYSQL_USER: club_user
       MYSQL_PASSWORD: club_password
       MYSQL_ROOT_PASSWORD: root_password
-    ports:
-      - "3307:3306"
+    expose:
+      - "3306"
     volumes:
       - club_db_data:/var/lib/mysql
     healthcheck:
@@ -60,15 +61,15 @@ services:
       - club_network
 
   # ---------------------------------------------------------------------------
-  # 3. phpMyAdmin (Interface visuelle pour explorer les 14 tables)
-  # Accessible sur http://localhost:8080
+  # 3. phpMyAdmin (Port hôte isolé : 8096)
+  # Accessible sur http://180.149.199.233:8096
   # ---------------------------------------------------------------------------
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: club_formateurs_pma
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${PMA_PORT:-8096}:80"
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
@@ -81,14 +82,14 @@ services:
       - club_network
 
   # ---------------------------------------------------------------------------
-  # 4. Redis 7 (Cache, Sessions & Queues temps réel)
+  # 4. Redis 7 (Isolé dans club_network — aucun conflit port 6379 sur le VPS)
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: club_formateurs_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - club_redis_data:/data
     networks:
@@ -96,8 +97,11 @@ services:
 
 networks:
   club_network:
+    name: club_formateurs_net
     driver: bridge
 
 volumes:
   club_db_data:
+    name: club_formateurs_db_data
   club_redis_data:
+    name: club_formateurs_redis_data
