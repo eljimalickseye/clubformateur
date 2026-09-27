@@ -170,6 +170,9 @@ class AuthController extends Controller
             if ($request->filled('photoUrl')) {
                 $user->photo_url = $request->input('photoUrl');
             }
+            if ($request->filled('role')) {
+                $user->role = $request->input('role');
+            }
             $user->save();
         }
 
