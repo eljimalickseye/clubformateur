@@ -23,6 +23,24 @@ use Illuminate\Support\Facades\Route;
 */
 
 $registerRoutes = function () {
+    // ─── 0. SANTÉ & HEALTHCHECK ──────────────────────────────────────────
+    Route::get('/health', function () {
+        $dbStatus = 'connected';
+        try {
+            \Illuminate\Support\Facades\DB::connection()->getPdo();
+        } catch (\Throwable $e) {
+            $dbStatus = 'error: ' . $e->getMessage();
+        }
+
+        return response()->json([
+            'status' => $dbStatus === 'connected' ? 'ok' : 'degraded',
+            'app' => 'Club des Formateurs API',
+            'version' => '1.0.0',
+            'database' => $dbStatus,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    });
+
     // ─── 1. AUTHENTIFICATION & PROFILS ────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
