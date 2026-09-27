@@ -87,6 +87,51 @@ class AuthController extends Controller
         ]);
     }
 
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'displayName' => 'nullable|string',
+            'photoUrl' => 'nullable|string',
+            'uid' => 'nullable|string',
+            'role' => 'nullable|string|in:student,teacher,corrector,admin,super_admin',
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            $token = Str::random(80);
+            $user = User::create([
+                'uid' => $validated['uid'] ?? ('user_' . Str::lower(Str::random(12))),
+                'name' => $validated['displayName'] ?? explode('@', $email)[0],
+                'email' => $email,
+                'password' => Hash::make(Str::random(32)),
+                'role' => $validated['role'] ?? 'student',
+                'phone' => '+221 77 000 00 00',
+                'photo_url' => $validated['photoUrl'] ?? null,
+                'is_verified' => true,
+                'onboarding_step' => 3,
+                'balance_fcfa' => 0,
+                'api_token' => $token,
+            ]);
+        } else {
+            if (!$user->api_token) {
+                $user->api_token = Str::random(80);
+            }
+            if (!empty($validated['photoUrl']) && empty($user->photo_url)) {
+                $user->photo_url = $validated['photoUrl'];
+            }
+            $user->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'token' => $user->api_token,
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
     public function me(Request $request): JsonResponse
     {
         $user = $this->resolveUser($request);
