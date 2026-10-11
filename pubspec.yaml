@@ -1,0 +1,48 @@
+name: olivia
+description: "Club des Formateurs - Apprendre, Enseigner, Évoluer"
+publish_to: 'none'
+
+version: 1.0.22+122
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  intl: ^0.20.2
+  provider: ^6.1.2
+  qr_flutter: ^4.1.0
+  font_awesome_flutter: ^10.8.0
+  shared_preferences: ^2.5.2
+  uuid: ^4.5.1
+  image_picker: ^1.2.2
+  flutter_svg: ^2.0.10+1
+  http: ^1.2.2
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.6.2
+  cloud_firestore: ^5.6.8
+  firebase_storage: ^12.4.4
+  file_picker: ^8.1.7
+  record: ^5.2.0
+  audioplayers: ^6.1.1
+  video_player: ^2.9.2
+  url_launcher: ^6.3.1
+  crypto: ^3.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+

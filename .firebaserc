@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "anour-84a69"
+  },
+  "targets": {
+    "anour-84a69": {
+      "hosting": {
+        "club-des-formateurs": [
+          "club-des-formateurs"
+        ],
+        "anour": [
+          "anour-84a69"
+        ]
+      }
+    }
+  }
+}
