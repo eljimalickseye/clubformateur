@@ -1,0 +1,921 @@
+<div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-fade-in font-body">
+
+  <!-- Header Banner -->
+  <div class="rounded-3xl border border-dark-border bg-white p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-xs">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
+        <span>●</span> Évaluations, Devoirs & Examens
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl font-black text-light tracking-tight">
+        Gestion des Devoirs & Examens
+      </h1>
+      <p class="text-xs sm:text-sm text-light-muted mt-1 max-w-2xl">
+        Créez vos évaluations sous plusieurs formats (en ligne, Word .docx, PDF ou document à compléter), suivez les rendus en temps réel, notez question par question et échangez avec vos élèves.
+      </p>
+    </div>
+
+    <button (click)="openCreateModal()"
+            class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all shadow-md shadow-primary/25 flex items-center justify-center gap-2 shrink-0 active:scale-95 cursor-pointer">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      <span>Nouveau Devoir / Examen</span>
+    </button>
+  </div>
+
+  <!-- 4 KPI Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Devoirs -->
+    <div class="rounded-2xl border border-dark-border bg-white p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+          </svg>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+          Actifs
+        </span>
+      </div>
+      <div class="mt-3">
+        <p class="font-display text-2xl sm:text-3xl font-black text-light">{{ assignments().length }}</p>
+        <p class="text-xs font-bold text-light-muted mt-0.5">Devoirs & Examens</p>
+      </div>
+    </div>
+
+    <!-- Copies Soumises -->
+    <div class="rounded-2xl border border-dark-border bg-white p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+          </svg>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+          Total rendus
+        </span>
+      </div>
+      <div class="mt-3">
+        <p class="font-display text-2xl sm:text-3xl font-black text-light">{{ totalSubmissionsCount() }}</p>
+        <p class="text-xs font-bold text-light-muted mt-0.5">Copies reçues</p>
+      </div>
+    </div>
+
+    <!-- Copies à Corriger -->
+    <div class="rounded-2xl border border-dark-border bg-white p-5 shadow-xs"
+         [class.border-amber-400]="pendingCorrectionsCount() > 0"
+         [class.bg-amber-50]="pendingCorrectionsCount() > 0">
+      <div class="flex items-center justify-between">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        @if (pendingCorrectionsCount() > 0) {
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
+            Action requise
+          </span>
+        } @else {
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+            À jour
+          </span>
+        }
+      </div>
+      <div class="mt-3">
+        <p class="font-display text-2xl sm:text-3xl font-black" [class.text-amber-600]="pendingCorrectionsCount() > 0" [class.text-light]="pendingCorrectionsCount() === 0">
+          {{ pendingCorrectionsCount() }}
+        </p>
+        <p class="text-xs font-bold text-light-muted mt-0.5">Copies à corriger</p>
+      </div>
+    </div>
+
+    <!-- Retours demandés -->
+    <div class="rounded-2xl border border-dark-border bg-white p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          Ré-évaluations
+        </span>
+      </div>
+      <div class="mt-3">
+        <p class="font-display text-2xl sm:text-3xl font-black text-light">{{ resubmitRequestedCount() }}</p>
+        <p class="text-xs font-bold text-light-muted mt-0.5">Retours demandés</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Tabs: Devoirs vs Copies -->
+  <div class="flex items-center gap-2 border-b border-dark-border pb-1">
+    <button (click)="activeTab.set('assignments')"
+            [class.text-primary]="activeTab() === 'assignments'"
+            [class.border-primary]="activeTab() === 'assignments'"
+            [class.border-b-2]="activeTab() === 'assignments'"
+            [class.font-bold]="activeTab() === 'assignments'"
+            [class.text-light-muted]="activeTab() !== 'assignments'"
+            class="px-4 py-2.5 text-xs sm:text-sm cursor-pointer transition-all flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span>Mes Devoirs & Examens ({{ assignments().length }})</span>
+    </button>
+
+    <button (click)="activeTab.set('submissions')"
+            [class.text-primary]="activeTab() === 'submissions'"
+            [class.border-primary]="activeTab() === 'submissions'"
+            [class.border-b-2]="activeTab() === 'submissions'"
+            [class.font-bold]="activeTab() === 'submissions'"
+            [class.text-light-muted]="activeTab() !== 'submissions'"
+            class="px-4 py-2.5 text-xs sm:text-sm cursor-pointer transition-all flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+      </svg>
+      <span>Copies des Étudiants ({{ submissions().length }})</span>
+      @if (pendingCorrectionsCount() > 0) {
+        <span class="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center">
+          {{ pendingCorrectionsCount() }}
+        </span>
+      }
+    </button>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- TAB 1 : MES DEVOIRS & EXAMENS                                    -->
+  <!-- ================================================================ -->
+  @if (activeTab() === 'assignments') {
+    <div class="space-y-6">
+      
+      <!-- Filter Pills -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button (click)="assignmentFilter.set('all')"
+                [class.bg-primary]="assignmentFilter() === 'all'"
+                [class.text-white]="assignmentFilter() === 'all'"
+                [class.bg-white]="assignmentFilter() !== 'all'"
+                [class.text-light-muted]="assignmentFilter() !== 'all'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer">
+          Tous ({{ assignments().length }})
+        </button>
+        <button (click)="assignmentFilter.set('direct')"
+                [class.bg-primary]="assignmentFilter() === 'direct'"
+                [class.text-white]="assignmentFilter() === 'direct'"
+                [class.bg-white]="assignmentFilter() !== 'direct'"
+                [class.text-light-muted]="assignmentFilter() !== 'direct'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer flex items-center gap-1">
+          <span>✍️ Direct dans l'app</span>
+        </button>
+        <button (click)="assignmentFilter.set('document')"
+                [class.bg-primary]="assignmentFilter() === 'document'"
+                [class.text-white]="assignmentFilter() === 'document'"
+                [class.bg-white]="assignmentFilter() !== 'document'"
+                [class.text-light-muted]="assignmentFilter() !== 'document'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer flex items-center gap-1">
+          <span>📄 Word & PDF</span>
+        </button>
+        <button (click)="assignmentFilter.set('template_to_fill')"
+                [class.bg-primary]="assignmentFilter() === 'template_to_fill'"
+                [class.text-white]="assignmentFilter() === 'template_to_fill'"
+                [class.bg-white]="assignmentFilter() !== 'template_to_fill'"
+                [class.text-light-muted]="assignmentFilter() !== 'template_to_fill'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer flex items-center gap-1">
+          <span>📑 Document à compléter</span>
+        </button>
+        <button (click)="assignmentFilter.set('draft')"
+                [class.bg-primary]="assignmentFilter() === 'draft'"
+                [class.text-white]="assignmentFilter() === 'draft'"
+                [class.bg-white]="assignmentFilter() !== 'draft'"
+                [class.text-light-muted]="assignmentFilter() !== 'draft'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer flex items-center gap-1">
+          <span>⏳ Brouillons</span>
+        </button>
+      </div>
+
+      <!-- Assignments Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (assignment of filteredAssignments(); track assignment.id) {
+          <div class="rounded-3xl border border-dark-border bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+            
+            <div class="space-y-3">
+              <!-- Top Badges -->
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider"
+                        [ngClass]="getTypeBadgeClass(assignment.type)">
+                    {{ getTypeLabel(assignment.type) }}
+                  </span>
+                  @if (assignment.status === 'draft') {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      Brouillon
+                    </span>
+                  } @else {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Publié
+                    </span>
+                  }
+                </div>
+                <span class="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+                  /{{ assignment.maxScore || 20 }} pts
+                </span>
+              </div>
+
+              <!-- Title & Course -->
+              <div>
+                <h3 class="font-display font-bold text-light text-base line-clamp-2">
+                  {{ assignment.title }}
+                </h3>
+                <p class="text-xs text-primary font-semibold mt-0.5 truncate">
+                  📖 {{ assignment.courseTitle }}
+                </p>
+              </div>
+
+              <!-- Creation Mode Badge -->
+              <div class="flex items-center gap-2 text-[11px] font-medium text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                <span>{{ assignment.creationMode === 'document' ? '📄' : assignment.creationMode === 'template_to_fill' ? '📑' : '✍️' }}</span>
+                <span>Mode : <strong>{{ getModeLabel(assignment.creationMode) }}</strong></span>
+              </div>
+
+              <!-- Time Limit & Due Date -->
+              <div class="flex flex-wrap items-center gap-3 text-xs text-light-muted">
+                @if (assignment.timeLimitMinutes) {
+                  <span class="flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg">
+                    ⏱️ {{ assignment.timeLimitMinutes }} min
+                  </span>
+                }
+                @if (assignment.dueDate) {
+                  <span class="flex items-center gap-1">
+                    📅 Échéance : {{ assignment.dueDate.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                }
+              </div>
+
+              <!-- Attached Subject Document (Word / PDF) -->
+              @if (assignment.attachmentUrl) {
+                <div class="p-3 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 truncate text-xs text-blue-900 font-medium">
+                    <span class="text-base">{{ assignment.attachmentType === 'docx' ? '📝' : '📄' }}</span>
+                    <span class="truncate">{{ assignment.attachmentName || 'Document Sujet' }}</span>
+                  </div>
+                  <a [href]="assignment.attachmentUrl" target="_blank"
+                     class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shrink-0 shadow-xs">
+                    Télécharger
+                  </a>
+                </div>
+              }
+
+              <!-- Mode A: Question list count -->
+              @if (assignment.creationMode === 'direct' && assignment.questions?.length) {
+                <div class="p-2.5 rounded-xl bg-purple-50/60 border border-purple-200 text-xs text-purple-900 flex items-center justify-between">
+                  <span>Questions configurées :</span>
+                  <span class="font-bold">{{ assignment.questions?.length }} question(s)</span>
+                </div>
+              }
+            </div>
+
+            <!-- Footer: Submissions info & Actions -->
+            <div class="pt-4 border-t border-dark-border flex items-center justify-between gap-3">
+              <div class="text-xs">
+                <p class="font-bold text-light">{{ assignment.submissionCount || 0 }} copies reçues</p>
+                <p class="text-[11px] text-light-muted">{{ assignment.gradedCount || 0 }} corrigée(s)</p>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button (click)="viewSubmissionsForAssignment(assignment)"
+                        class="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-xs transition-all cursor-pointer">
+                  Voir copies
+                </button>
+                <button (click)="deleteAssignment(assignment.id)"
+                        class="p-1.5 rounded-xl text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                        title="Supprimer le devoir">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        } @empty {
+          <div class="col-span-full text-center py-16 bg-white border border-dashed border-dark-border rounded-3xl p-8">
+            <div class="text-4xl mb-3">📝</div>
+            <h3 class="font-display text-base font-bold text-light">Aucun devoir ou examen trouvé</h3>
+            <p class="text-xs text-light-muted mt-1">Créez votre première évaluation pour vos étudiants.</p>
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ================================================================ -->
+  <!-- TAB 2 : COPIES DES ÉTUDIANTS                                    -->
+  <!-- ================================================================ -->
+  @if (activeTab() === 'submissions') {
+    <div class="space-y-6">
+      
+      <!-- Submissions Filters -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button (click)="submissionFilter.set('all')"
+                [class.bg-primary]="submissionFilter() === 'all'"
+                [class.text-white]="submissionFilter() === 'all'"
+                [class.bg-white]="submissionFilter() !== 'all'"
+                [class.text-light-muted]="submissionFilter() !== 'all'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer">
+          Toutes les copies ({{ submissions().length }})
+        </button>
+        <button (click)="submissionFilter.set('submitted')"
+                [class.bg-primary]="submissionFilter() === 'submitted'"
+                [class.text-white]="submissionFilter() === 'submitted'"
+                [class.bg-white]="submissionFilter() !== 'submitted'"
+                [class.text-light-muted]="submissionFilter() !== 'submitted'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5">
+          <span>À corriger</span>
+          @if (pendingCorrectionsCount() > 0) {
+            <span class="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-black">
+              {{ pendingCorrectionsCount() }}
+            </span>
+          }
+        </button>
+        <button (click)="submissionFilter.set('graded')"
+                [class.bg-primary]="submissionFilter() === 'graded'"
+                [class.text-white]="submissionFilter() === 'graded'"
+                [class.bg-white]="submissionFilter() !== 'graded'"
+                [class.text-light-muted]="submissionFilter() !== 'graded'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer">
+          Corrigées ({{ gradedSubmissionsCount() }})
+        </button>
+        <button (click)="submissionFilter.set('resubmit_requested')"
+                [class.bg-primary]="submissionFilter() === 'resubmit_requested'"
+                [class.text-white]="submissionFilter() === 'resubmit_requested'"
+                [class.bg-white]="submissionFilter() !== 'resubmit_requested'"
+                [class.text-light-muted]="submissionFilter() !== 'resubmit_requested'"
+                class="px-3.5 py-1.5 rounded-full border border-dark-border text-xs font-bold transition-all cursor-pointer">
+          Retours demandés ({{ resubmitRequestedCount() }})
+        </button>
+      </div>
+
+      <!-- Submissions List -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (sub of filteredSubmissions(); track sub.id) {
+          <div class="rounded-3xl border border-dark-border bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+            
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                    {{ sub.studentName.charAt(0) || 'E' }}
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-light text-sm">{{ sub.studentName }}</h4>
+                    <p class="text-[11px] text-light-muted">{{ sub.studentEmail || 'Apprenant' }}</p>
+                  </div>
+                </div>
+
+                @if (sub.status === 'graded') {
+                  <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {{ sub.score }} / {{ sub.maxScore || 20 }}
+                  </span>
+                } @else if (sub.status === 'resubmit_requested') {
+                  <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    Retour demandé
+                  </span>
+                } @else {
+                  <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
+                    À corriger
+                  </span>
+                }
+              </div>
+
+              <div>
+                <p class="text-[11px] text-primary font-bold uppercase tracking-wider">{{ sub.courseTitle }}</p>
+                <h3 class="font-display font-bold text-light text-sm line-clamp-1">{{ sub.assignmentTitle }}</h3>
+              </div>
+
+              <!-- Submission format indicator -->
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                <div class="flex items-center gap-1.5 truncate">
+                  <span>{{ sub.attachmentUrl ? '📄' : '✍️' }}</span>
+                  <span class="text-slate-700 font-medium truncate">
+                    {{ sub.attachmentName || (sub.textContent ? 'Réponse rédigée en ligne' : 'Copie de l’étudiant') }}
+                  </span>
+                </div>
+                @if (sub.attachmentSize) {
+                  <span class="text-[10px] text-slate-500 shrink-0">{{ formatFileSize(sub.attachmentSize) }}</span>
+                }
+              </div>
+
+              <p class="text-[11px] text-light-muted flex items-center gap-1">
+                <span>🕒</span>
+                <span>Remis le {{ formatTs(sub.submittedAt) | date:'dd/MM/yyyy à HH:mm' }}</span>
+              </p>
+            </div>
+
+            <div class="pt-3 border-t border-dark-border flex items-center justify-end">
+              <button (click)="openGradingDrawer(sub)"
+                      class="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                <span>{{ sub.status === 'graded' ? 'Modifier la note & revoir' : 'Corriger & Noter' }}</span>
+              </button>
+            </div>
+
+          </div>
+        } @empty {
+          <div class="col-span-full p-12 text-center text-light-muted text-xs bg-white rounded-3xl border border-dashed border-dark-border">
+            Aucune copie ne correspond au filtre sélectionné.
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ================================================================ -->
+  <!-- MODAL: CRÉER UN DEVOIR / EXAMEN (3 MODES)                        -->
+  <!-- ================================================================ -->
+  @if (showCreateModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+         (click)="showCreateModal.set(false)">
+      <div class="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-dark-border space-y-6 max-h-[92vh] overflow-y-auto"
+           (click)="$event.stopPropagation()">
+        
+        <div class="flex items-center justify-between border-b border-dark-border pb-4">
+          <div>
+            <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Création Pédagogique</span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-light">Nouveau Devoir ou Examen</h2>
+          </div>
+          <button (click)="showCreateModal.set(false)" class="text-light-muted hover:text-light p-2 rounded-xl hover:bg-dark-surface2 cursor-pointer">
+            ✕
+          </button>
+        </div>
+
+        <form [formGroup]="createAssignmentForm" (ngSubmit)="saveAssignment()" class="space-y-5">
+          
+          <!-- 1. SÉLECTION DU MODE DE CRÉATION -->
+          <div>
+            <label class="block text-xs font-bold text-light mb-2">Choisissez le format du devoir :</label>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              <!-- Mode A -->
+              <button type="button" (click)="selectedCreationMode.set('direct')"
+                      [class.border-primary]="selectedCreationMode() === 'direct'"
+                      [class.bg-purple-50]="selectedCreationMode() === 'direct'"
+                      class="p-3.5 rounded-2xl border text-left cursor-pointer transition-all hover:border-primary">
+                <div class="text-xl mb-1.5">✍️</div>
+                <h4 class="text-xs font-bold text-light">Direct dans l'application</h4>
+                <p class="text-[11px] text-light-muted mt-1 leading-snug">Questions directes avec barème individuel.</p>
+              </button>
+
+              <!-- Mode B -->
+              <button type="button" (click)="selectedCreationMode.set('document')"
+                      [class.border-primary]="selectedCreationMode() === 'document'"
+                      [class.bg-purple-50]="selectedCreationMode() === 'document'"
+                      class="p-3.5 rounded-2xl border text-left cursor-pointer transition-all hover:border-primary">
+                <div class="text-xl mb-1.5">📄</div>
+                <h4 class="text-xs font-bold text-light">Document Word / PDF</h4>
+                <p class="text-[11px] text-light-muted mt-1 leading-snug">Importez le sujet sous format Word .docx ou PDF.</p>
+              </button>
+
+              <!-- Mode C -->
+              <button type="button" (click)="selectedCreationMode.set('template_to_fill')"
+                      [class.border-primary]="selectedCreationMode() === 'template_to_fill'"
+                      [class.bg-purple-50]="selectedCreationMode() === 'template_to_fill'"
+                      class="p-3.5 rounded-2xl border text-left cursor-pointer transition-all hover:border-primary">
+                <div class="text-xl mb-1.5">📑</div>
+                <h4 class="text-xs font-bold text-light">Document à compléter</h4>
+                <p class="text-[11px] text-light-muted mt-1 leading-snug">Modèle Word/PDF préparé pour être rempli par l'élève.</p>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- 2. Informations Générales -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Associer au Cours *</label>
+              <select formControlName="courseId"
+                      class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+                <option value="general">✦ Formation Générale (Tous les inscrits)</option>
+                @for (c of myCourses(); track c.id) {
+                  <option [value]="c.id">{{ c.title }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Type d'évaluation</label>
+              <select formControlName="type"
+                      class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+                <option value="homework">Devoir noté</option>
+                <option value="exam">Examen officiel</option>
+                <option value="exercise">Exercice d'application</option>
+                <option value="project">Projet de fin d'étude</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-light mb-1.5">Titre du devoir ou examen *</label>
+            <input type="text" formControlName="title" placeholder="Ex: Examen partiel - Étude de cas & Analyse financière"
+                   class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+          </div>
+
+          <!-- Barème, Durée, Échéance & Statut -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Barème Total</label>
+              <input type="number" formControlName="maxScore" placeholder="20"
+                     class="w-full px-3 py-2 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Durée (minutes)</label>
+              <input type="number" formControlName="timeLimitMinutes" placeholder="Ex: 60"
+                     class="w-full px-3 py-2 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Date limite</label>
+              <input type="datetime-local" formControlName="dueDate"
+                     class="w-full px-2.5 py-2 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-light mb-1.5">Statut</label>
+              <select formControlName="status"
+                      class="w-full px-3 py-2 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+                <option value="published">Publié immédiatement</option>
+                <option value="draft">Brouillon</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Description / Consignes -->
+          <div>
+            <label class="block text-xs font-bold text-light mb-1.5">Consignes générales & Directives *</label>
+            <textarea formControlName="description" rows="3"
+                      placeholder="Indiquez clairement les instructions, les critères d'évaluation et les recommandations..."
+                      class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary resize-none"></textarea>
+          </div>
+
+          <!-- BLOC SPÉCIFIQUE AU MODE SÉLECTIONNÉ -->
+          @if (selectedCreationMode() === 'direct') {
+            <!-- Mode A: Éditeur de questions -->
+            <div class="p-4 rounded-2xl bg-purple-50/50 border border-purple-200 space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <span>❓ Questions de l'évaluation :</span>
+                </h4>
+                <button type="button" (click)="addQuestion()"
+                        class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-all">
+                  + Ajouter une question
+                </button>
+              </div>
+
+              <div class="space-y-3 max-h-60 overflow-y-auto">
+                @for (q of questionsList(); track q.id; let idx = $index) {
+                  <div class="p-3 bg-white rounded-xl border border-purple-200 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
+                      {{ idx + 1 }}
+                    </span>
+                    <input type="text" [(ngModel)]="q.question" [ngModelOptions]="{standalone: true}"
+                           placeholder="Énoncé de la question..."
+                           class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-light focus:border-primary outline-none">
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <input type="number" [(ngModel)]="q.points" [ngModelOptions]="{standalone: true}"
+                             class="w-16 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center outline-none">
+                      <span class="text-[11px] text-purple-800 font-bold">pts</span>
+                      <button type="button" (click)="removeQuestion(idx)" class="text-red-500 hover:text-red-700 p-1 cursor-pointer">✕</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else {
+            <!-- Mode B & C: Document Word ou PDF -->
+            <div class="p-4 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-2">
+              <label class="block text-xs font-bold text-blue-950">
+                {{ selectedCreationMode() === 'template_to_fill' ? 'Modèle Word (.docx) ou PDF à compléter :' : 'Document sujet (.docx ou .pdf) :' }}
+              </label>
+              <input type="file" (change)="onAssignmentFileSelected($event)" accept=".pdf,.docx,.doc"
+                     class="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-light text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white cursor-pointer">
+              @if (selectedAssignmentFile) {
+                <p class="text-xs text-emerald-700 font-bold">✓ Fichier prêt : {{ selectedAssignmentFile.name }} ({{ formatFileSize(selectedAssignmentFile.size) }})</p>
+              } @else {
+                <p class="text-[11px] text-blue-700">L'étudiant pourra télécharger ce document, le compléter dans Word ou un éditeur PDF, puis réimporter sa copie.</p>
+              }
+            </div>
+          }
+
+          <!-- Options de réponse pour l'étudiant -->
+          <div class="p-4 rounded-2xl bg-dark-surface2/60 border border-dark-border space-y-2 text-xs">
+            <p class="font-bold text-light uppercase tracking-wider">Autorisations accordées à l'étudiant :</p>
+            <div class="flex flex-wrap gap-4 pt-1">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" formControlName="allowDirectAnswer" class="rounded text-primary">
+                <span>Réponse en ligne</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" formControlName="allowFileUpload" class="rounded text-primary">
+                <span>Dépôt de fichier Word/PDF</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" formControlName="allowResubmission" class="rounded text-primary">
+                <span>Autoriser nouvelle soumission</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit buttons -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-dark-border">
+            <button type="button" (click)="showCreateModal.set(false)"
+                    class="px-4 py-2.5 rounded-xl bg-dark-surface2 text-xs font-bold text-light hover:bg-dark-border cursor-pointer">
+              Annuler
+            </button>
+            <button type="submit" [disabled]="createAssignmentForm.invalid || isSubmitting()"
+                    class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-md shadow-primary/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95 transition-all">
+              @if (isSubmitting()) {
+                <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>Enregistrement...</span>
+              } @else {
+                <span>Enregistrer & Distribuer le devoir</span>
+              }
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  }
+
+  <!-- ================================================================ -->
+  <!-- DRAWER: CORRECTION, NOTATION & MESSAGERIE CONTEXTUELLE           -->
+  <!-- ================================================================ -->
+  @if (selectedSubmission()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-xs animate-fade-in"
+         (click)="closeGradingDrawer()">
+      <div class="relative w-full max-w-2xl h-full bg-white shadow-2xl border-l border-dark-border p-6 sm:p-8 space-y-6 overflow-y-auto"
+           (click)="$event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-dark-border pb-4">
+          <div>
+            <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Copie d'évaluation</span>
+            <h2 class="font-display text-lg font-bold text-light">{{ selectedSubmission()?.studentName }}</h2>
+            <p class="text-xs text-light-muted mt-0.5">{{ selectedSubmission()?.assignmentTitle }}</p>
+          </div>
+          <button (click)="closeGradingDrawer()" class="text-light-muted hover:text-light p-2 rounded-xl hover:bg-dark-surface2 cursor-pointer">
+            ✕
+          </button>
+        </div>
+
+        <!-- Drawer Sub-tabs -->
+        <div class="flex border-b border-dark-border">
+          <button (click)="drawerTab.set('grade')"
+                  [class.text-primary]="drawerTab() === 'grade'"
+                  [class.border-b-2]="drawerTab() === 'grade'"
+                  [class.border-primary]="drawerTab() === 'grade'"
+                  [class.font-bold]="drawerTab() === 'grade'"
+                  class="px-4 py-2 text-xs cursor-pointer">
+            Copie & Évaluation
+          </button>
+          <button (click)="drawerTab.set('messages')"
+                  [class.text-primary]="drawerTab() === 'messages'"
+                  [class.border-b-2]="drawerTab() === 'messages'"
+                  [class.border-primary]="drawerTab() === 'messages'"
+                  [class.font-bold]="drawerTab() === 'messages'"
+                  class="px-4 py-2 text-xs cursor-pointer flex items-center gap-1.5">
+            <span>Échanges & Questions 💬</span>
+            @if (assignmentMessages().length > 0) {
+              <span class="px-1.5 py-0.2 rounded-full bg-primary text-white text-[10px] font-bold">
+                {{ assignmentMessages().length }}
+              </span>
+            }
+          </button>
+        </div>
+
+        <!-- TAB 1: COPIE & ÉVALUATION -->
+        @if (drawerTab() === 'grade') {
+          <div class="space-y-5">
+            
+            <!-- Student's Work Submission Display -->
+            <div class="p-5 rounded-2xl bg-dark-surface2/50 border border-dark-border space-y-3">
+              <h3 class="text-xs font-bold text-light uppercase tracking-wider">Travail remis par l'étudiant</h3>
+              
+              <!-- Direct Text / Answers -->
+              @if (selectedSubmission()?.textContent) {
+                <div class="p-3.5 rounded-xl bg-white border border-dark-border text-xs text-light leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+                  {{ selectedSubmission()?.textContent }}
+                </div>
+              }
+
+              <!-- Question-by-question student answers if Mode A -->
+              @if (selectedSubmission()?.questionAnswers?.length) {
+                <div class="space-y-3 max-h-64 overflow-y-auto">
+                  @for (qa of selectedSubmission()?.questionAnswers; track qa.questionId) {
+                    <div class="p-3 bg-white rounded-xl border border-dark-border space-y-1.5">
+                      <div class="flex items-center justify-between text-xs font-bold text-light">
+                        <span>{{ qa.questionText }}</span>
+                        <span class="text-primary font-mono">/ {{ qa.maxPoints }} pts</span>
+                      </div>
+                      <p class="text-xs text-slate-700 whitespace-pre-wrap bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                        {{ qa.answerText || 'Aucune réponse rédigée' }}
+                      </p>
+                      <!-- Inline Question Grading -->
+                      <div class="flex items-center gap-2 pt-1">
+                        <label class="text-[11px] font-bold text-slate-500">Points :</label>
+                        <input type="number" [(ngModel)]="questionScores[qa.questionId].points" (input)="calculateTotalFromQuestions()"
+                               class="w-16 px-2 py-1 bg-slate-100 border border-slate-300 rounded text-xs font-bold text-center">
+                        <input type="text" [(ngModel)]="questionScores[qa.questionId].comment" placeholder="Remarque pour cette question..."
+                               class="flex-1 px-2.5 py-1 bg-slate-100 border border-slate-300 rounded text-xs">
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Attached Word / PDF Document -->
+              @if (selectedSubmission()?.attachmentUrl) {
+                <div class="flex items-center justify-between p-3.5 rounded-xl bg-white border border-dark-border">
+                  <div class="flex items-center gap-2 text-xs font-medium text-light truncate">
+                    <span class="text-lg">📄</span>
+                    <div class="truncate">
+                      <p class="truncate font-bold">{{ selectedSubmission()?.attachmentName || 'Copie soumise par l’étudiant' }}</p>
+                      @if (selectedSubmission()?.attachmentSize) {
+                        <p class="text-[10px] text-light-muted">{{ formatFileSize(selectedSubmission()?.attachmentSize) }}</p>
+                      }
+                    </div>
+                  </div>
+                  <a [href]="selectedSubmission()?.attachmentUrl" target="_blank"
+                     class="px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary-600 text-xs font-bold transition-all shrink-0 shadow-xs">
+                    Télécharger la copie 📥
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- Notation & Appréciations Form -->
+            <div class="space-y-4">
+              
+              <!-- Note Globale -->
+              <div>
+                <label class="block text-xs font-bold text-light mb-1.5">Note globale attribuée *</label>
+                <div class="flex items-center gap-3">
+                  <input type="number" [(ngModel)]="gradeScore" min="0" [max]="selectedSubmission()?.maxScore || 20" step="0.5"
+                         class="w-32 px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light font-display font-black text-lg focus:outline-none focus:border-primary">
+                  <span class="text-sm font-bold text-light-muted">/ {{ selectedSubmission()?.maxScore || 20 }} points</span>
+                </div>
+              </div>
+
+              <!-- Appréciation Globale -->
+              <div>
+                <label class="block text-xs font-bold text-light mb-1.5">Appréciation globale du formateur</label>
+                <input type="text" [(ngModel)]="generalAppreciation" placeholder="Ex: Excellent travail, félicitations ! ou Travail incomplet, à approfondir..."
+                       class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary">
+              </div>
+
+              <!-- Commentaires Pédagogiques Détaillés -->
+              <div>
+                <label class="block text-xs font-bold text-light mb-1.5">Commentaires détaillés et conseils d'amélioration</label>
+                <textarea [(ngModel)]="feedbackText" rows="3" placeholder="Expliquez en détail les points forts, erreurs et pistes d'amélioration..."
+                          class="w-full px-4 py-2.5 bg-dark-surface2 border border-dark-border rounded-xl text-light text-xs font-medium focus:outline-none focus:border-primary resize-none"></textarea>
+              </div>
+
+              <!-- Document Corrigé (Option de joindre un PDF/Word annoté) -->
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <label class="block text-xs font-bold text-slate-800">
+                  📎 Joindre un document corrigé (PDF annoté ou Word corrigé) :
+                </label>
+                <input type="file" (change)="onCorrectedFileSelected($event)" accept=".pdf,.docx,.doc"
+                       class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-light text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white cursor-pointer">
+                @if (selectedCorrectedFile) {
+                  <p class="text-xs text-emerald-700 font-bold">✓ Fichier sélectionné : {{ selectedCorrectedFile.name }}</p>
+                } @else if (selectedSubmission()?.correctedDocumentUrl) {
+                  <div class="flex items-center justify-between text-xs text-blue-900 bg-blue-50 p-2 rounded-lg">
+                    <span>📄 Fichier corrigé actuel : {{ selectedSubmission()?.correctedDocumentName || 'Document Corrigé' }}</span>
+                    <a [href]="selectedSubmission()?.correctedDocumentUrl" target="_blank" class="font-bold underline">Voir</a>
+                  </div>
+                }
+              </div>
+
+              <!-- Enregistrement Vocal Studio -->
+              <div class="p-4 rounded-2xl border border-purple-200 bg-purple-50/50 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                    <span>🎙️ Appréciation Vocale Personnalisée :</span>
+                  </h4>
+                  @if (isRecording()) {
+                    <span class="flex items-center gap-1.5 text-xs font-black text-red-600 animate-pulse">
+                      <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+                      {{ formatRecordTime(recordingSeconds()) }}
+                    </span>
+                  }
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  @if (!isRecording() && !recordedAudioBlob()) {
+                    <button type="button" (click)="startVoiceRecording()"
+                            class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+                      <span>Démarrer l'enregistrement vocal</span>
+                    </button>
+                  }
+                  @if (isRecording()) {
+                    <button type="button" (click)="stopVoiceRecording()"
+                            class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all animate-pulse">
+                      <span>Arrêter l'enregistrement</span>
+                    </button>
+                  }
+                  @if (recordedAudioUrl()) {
+                    <div class="w-full space-y-1.5 pt-1">
+                      <audio [src]="recordedAudioUrl()" controls class="w-full h-9 rounded-xl"></audio>
+                      <button type="button" (click)="resetVoiceRecording()" class="text-xs text-red-500 hover:underline">
+                        Recommencer
+                      </button>
+                    </div>
+                  } @else if (selectedSubmission()?.feedbackVoiceUrl) {
+                    <audio [src]="selectedSubmission()?.feedbackVoiceUrl" controls class="w-full h-9 rounded-xl"></audio>
+                  }
+                </div>
+              </div>
+
+              <!-- Checkbox Nouvelle Soumission -->
+              <label class="flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200 cursor-pointer">
+                <input type="checkbox" [(ngModel)]="isResubmitRequested" class="rounded text-amber-600">
+                <span>Demander à l'étudiant de corriger et renvoyer une nouvelle version de sa copie</span>
+              </label>
+
+              <!-- Drawer Submit Actions -->
+              <div class="flex items-center justify-end gap-3 pt-4 border-t border-dark-border">
+                <button type="button" (click)="closeGradingDrawer()"
+                        class="px-4 py-2.5 rounded-xl bg-dark-surface2 text-xs font-bold text-light hover:bg-dark-border cursor-pointer">
+                  Fermer
+                </button>
+                <button type="button" (click)="submitGrade()" [disabled]="gradeScore === null || isSubmittingGrade()"
+                        class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+                  @if (isSubmittingGrade()) {
+                    <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Envoi en cours...</span>
+                  } @else {
+                    <span>{{ isResubmitRequested ? 'Envoyer la demande de correction' : 'Valider & Publier la note' }}</span>
+                  }
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        }
+
+        <!-- TAB 2: ÉCHANGES & MESSAGES CONTEXTUELS -->
+        @if (drawerTab() === 'messages') {
+          <div class="flex flex-col h-[500px] space-y-3">
+            
+            <div class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 overflow-y-auto space-y-3">
+              @for (msg of assignmentMessages(); track msg.id) {
+                <div class="p-3 rounded-2xl max-w-[85%] text-xs space-y-1"
+                     [class.ml-auto]="msg.senderRole === 'teacher'"
+                     [class.bg-primary]="msg.senderRole === 'teacher'"
+                     [class.text-white]="msg.senderRole === 'teacher'"
+                     [class.bg-white]="msg.senderRole !== 'teacher'"
+                     [class.border]="msg.senderRole !== 'teacher'"
+                     [class.border-slate-200]="msg.senderRole !== 'teacher'">
+                  <div class="flex items-center justify-between text-[10px] opacity-75">
+                    <span class="font-bold">{{ msg.senderName }}</span>
+                    <span>{{ msg.createdAt ? (formatTs(msg.createdAt) | date:'HH:mm') : '' }}</span>
+                  </div>
+                  @if (msg.text) {
+                    <p class="whitespace-pre-wrap">{{ msg.text }}</p>
+                  }
+                  @if (msg.voiceUrl) {
+                    <audio [src]="msg.voiceUrl" controls class="w-full h-8 mt-1"></audio>
+                  }
+                </div>
+              } @empty {
+                <div class="p-8 text-center text-slate-400 text-xs">
+                  Aucun message pour le moment. Vous pouvez poser une question ou envoyer une explication à l'élève.
+                </div>
+              }
+            </div>
+
+            <!-- Input bar -->
+            <div class="flex items-center gap-2">
+              <input type="text" [(ngModel)]="newMessageText" (keyup.enter)="sendMessage()"
+                     placeholder="Écrire un message pour cet élève..."
+                     class="flex-1 px-4 py-2.5 bg-white border border-dark-border rounded-xl text-xs text-light focus:outline-none focus:border-primary">
+              <button (click)="sendMessage()" [disabled]="!newMessageText.trim() || isSendingMessage()"
+                      class="px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-600 disabled:opacity-50 cursor-pointer">
+                Envoyer
+              </button>
+            </div>
+
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

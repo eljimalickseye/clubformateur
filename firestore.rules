@@ -1,0 +1,232 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ─────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function isOwner(userId) {
+      return isAuth() && uid() == userId;
+    }
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(uid())).data.role;
+    }
+    function hasRole(role) {
+      return isAuth() && getUserRole() == role;
+    }
+    function isAdmin() { return hasRole('admin'); }
+    function isTeacher() { return hasRole('teacher'); }
+    function isTeacherOrAdmin() { return isAdmin() || isTeacher(); }
+    function isEnrolled(courseId) {
+      return isAuth() && exists(/databases/$(database)/documents/enrollments/$(uid() + '_' + courseId));
+    }
+    function isCourseTeacher(courseId) {
+      return isAuth() && get(/databases/$(database)/documents/courses/$(courseId)).data.teacherId == uid();
+    }
+
+    // ─── Users ───────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ─── Categories ──────────────────────────────────────────
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── Platform Settings & App Version Updates ─────────────
+    match /platform_settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ─── Courses ─────────────────────────────────────────────
+    match /courses/{courseId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if (resource.data.teacherId == uid()) || isCourseTeacher(courseId) || isAdmin();
+
+      // Sections subcollection
+      match /sections/{sectionId} {
+        allow read, write: if true;
+      }
+
+      // Lessons subcollection
+      match /lessons/{lessonId} {
+        allow read, write: if true;
+      }
+
+      // Quiz subcollection
+      match /quizzes/{quizId} {
+        allow read, write: if true;
+
+        match /questions/{questionId} {
+          allow read, write: if true;
+        }
+      }
+
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read, write: if true;
+      }
+    }
+
+    // ─── Enrollment Requests ──────────────────────────────────
+    match /enrollment_requests/{requestId} {
+      allow read, write: if true;
+    }
+
+    // ─── Enrollments ─────────────────────────────────────────
+    match /enrollments/{enrollmentId} {
+      allow read, write: if true;
+    }
+
+    // ─── Payments ────────────────────────────────────────────
+    match /payments/{paymentId} {
+      allow read: if isAuth() && (
+        resource.data.userId == uid() || 
+        resource.data.teacherId == uid() || 
+        isAdmin()
+      );
+      allow create: if isAuth();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Messages (Chat) ─────────────────────────────────────
+    match /conversations/{conversationId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // ─── Community Channels (General & Q&A) ───────────────────
+    match /channels/{channelId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+
+      match /messages/{messageId} {
+        allow read: if isAuth();
+        allow create: if isAuth() && request.resource.data.senderId == uid();
+        allow update, delete: if isAuth() && (resource.data.senderId == uid() || isAdmin());
+      }
+    }
+
+    // Course forums
+    match /forums/{courseId}/posts/{postId} {
+      allow read: if isEnrolled(courseId) || isCourseTeacher(courseId) || isAdmin();
+      allow create: if (isEnrolled(courseId) || isCourseTeacher(courseId)) && request.resource.data.authorId == uid();
+      allow update: if resource.data.authorId == uid() || isAdmin();
+      allow delete: if resource.data.authorId == uid() || isAdmin();
+
+      match /replies/{replyId} {
+        allow read: if isEnrolled(courseId) || isCourseTeacher(courseId) || isAdmin();
+        allow create: if (isEnrolled(courseId) || isCourseTeacher(courseId)) && request.resource.data.authorId == uid();
+        allow update, delete: if resource.data.authorId == uid() || isAdmin();
+      }
+    }
+
+    // ─── Notifications ────────────────────────────────────────
+    match /notifications/{userId}/items/{notifId} {
+      allow read: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow create: if isAuth();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ─── Certificates ─────────────────────────────────────────
+    match /certificates/{certId} {
+      allow read: if isAuth() && (resource.data.studentId == uid() || isAdmin());
+      allow create: if isTeacherOrAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ─── Progress tracking ────────────────────────────────────
+    match /progress/{userId}/courses/{courseId} {
+      allow read: if isOwner(userId) || isCourseTeacher(courseId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // ─── Assignments (Devoirs & Exercices) ─────────────────────
+    match /assignments/{assignmentId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && (resource.data.teacherId == uid() || isAdmin());
+    }
+
+    // ─── Submissions (Rendus de devoirs) ───────────────────────
+    match /submissions/{submissionId} {
+      allow read: if isAuth() && (
+        resource.data.studentId == uid() ||
+        isCourseTeacher(resource.data.courseId) ||
+        isAdmin()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAdmin();
+    }
+
+    // ─── Live Sessions & Directs ──────────────────────────────
+    match /live_sessions/{sessionId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    match /liveSessions/{sessionId} {
+      allow read, write: if true;
+
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // ─── Homeworks & Corrections ─────────────────────────────
+    match /homeworks/{homeworkId} {
+      allow read, write: if true;
+      match /{allChildren=**} {
+        allow read, write: if true;
+      }
+    }
+
+    match /corrections/{correctionId} {
+      allow read, write: if true;
+    }
+
+
+    // ─── Study Groups (Groupes de Travail de 5 personnes max) ───
+    match /studyGroups/{groupId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth() && (resource.data.creatorId == uid() || isAdmin());
+
+      match /messages/{messageId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if isAuth() && (resource.data.senderId == uid() || isAdmin());
+      }
+      match /tasks/{taskId} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    // ─── Analytics (read-only for teachers) ──────────────────
+    match /analytics/{document=**} {
+      allow read: if isTeacherOrAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}

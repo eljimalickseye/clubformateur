@@ -1,0 +1,108 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuth() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(uid())).data;
+    }
+    
+    function isAdmin() {
+      return isAuth() && getUserData().role == 'admin';
+    }
+    
+    function isTeacher() {
+      return isAuth() && getUserData().role == 'teacher';
+    }
+    
+    function isTeacherOrAdmin() { return isAdmin() || isTeacher(); }
+    
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+          && request.resource.size < 15 * 1024 * 1024; // 15MB
+    }
+    
+    function isValidAudio() {
+      return (request.resource.contentType.matches('audio/.*')
+           || request.resource.contentType == 'video/webm'
+           || request.resource.contentType == 'application/octet-stream')
+          && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+
+    function isValidVideo() {
+      return request.resource.contentType.matches('video/.*')
+          && request.resource.size < 2 * 1024 * 1024 * 1024; // 2GB
+    }
+    
+    function isValidDocument() {
+      return (request.resource.contentType == 'application/pdf'
+           || request.resource.contentType.matches('application/.*')
+           || request.resource.contentType.matches('text/.*'))
+          && request.resource.size < 100 * 1024 * 1024; // 100MB
+    }
+
+    // Avatar utilisateurs
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && uid() == userId && isValidImage();
+    }
+
+    // Fichiers de cours (Thumbnails, etc.)
+    match /courses/{courseId}/{fileName} {
+      allow read: if true;
+      allow write: if isTeacherOrAdmin() && (isValidImage() || isValidVideo() || isValidDocument());
+    }
+
+    // Sous-dossier Leçons (Vidéos, PDF, etc.)
+    match /courses/{courseId}/lessons/{fileName} {
+      allow read: if isAuth() &&
+        (firestore.exists(/databases/(default)/documents/enrollments/$(uid() + '_' + courseId))
+         || isTeacherOrAdmin());
+      allow write: if isTeacherOrAdmin() && (isValidVideo() || isValidDocument());
+    }
+
+    // Devoirs et cours
+    match /courses/{courseId}/assignments/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    // Règle spécifique pour le dossier temp
+    match /courses/temp/{fileName} {
+      allow read: if true;
+      allow write: if isTeacherOrAdmin();
+    }
+
+    // Certificats (générés par Cloud Functions)
+    match /certificates/{certId}/{fileName} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Chat principal (Audio, Fichiers, Images)
+    match /chat/{chatId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isValidImage() || isValidAudio() || isValidDocument());
+    }
+
+    // Messages (images/pièces jointes)
+    match /messages/{conversationId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isValidImage() || isValidAudio() || isValidDocument());
+    }
+
+    // Groupes de travail (Study groups)
+    match /study_groups/{groupId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isValidImage() || isValidAudio() || isValidDocument());
+    }
+
+    // Devoirs et feedback vocal
+    match /assignments/{assignmentId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (isValidImage() || isValidAudio() || isValidDocument());
+    }
+  }
+}

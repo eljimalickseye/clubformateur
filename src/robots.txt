@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /teacher/
+Disallow: /student/dashboard
+Disallow: /student/settings
+Disallow: /auth/login
+Disallow: /auth/register
+
+Sitemap: https://club-des-formateurs.web.app/sitemap.xml

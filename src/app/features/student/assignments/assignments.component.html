@@ -1,0 +1,647 @@
+<div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8 animate-fade-in font-body">
+
+  <!-- Navigation Back Button -->
+  <div>
+    <app-back-button label="Tableau de bord" defaultRoute="/student/dashboard" />
+  </div>
+
+  <!-- Header Banner -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
+        <span>●</span> Espace Apprenant
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        Mes Devoirs & Examens
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl">
+        Téléchargez les sujets (Word .docx / PDF) ou modèles à compléter, réalisez vos devoirs en ligne ou avec vos propres logiciels, soumettez vos copies en toute sécurité et consultez vos notes et corrigés.
+      </p>
+    </div>
+  </div>
+
+  <!-- Filter Pills -->
+  <div class="flex flex-wrap items-center gap-2">
+    <button (click)="activeFilter.set('all')"
+            [class.bg-primary]="activeFilter() === 'all'"
+            [class.text-white]="activeFilter() === 'all'"
+            [class.bg-white]="activeFilter() !== 'all'"
+            [class.text-slate-600]="activeFilter() !== 'all'"
+            class="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+      Tous ({{ allCourseAssignments().length }})
+    </button>
+
+    <button (click)="activeFilter.set('pending')"
+            [class.bg-primary]="activeFilter() === 'pending'"
+            [class.text-white]="activeFilter() === 'pending'"
+            [class.bg-white]="activeFilter() !== 'pending'"
+            [class.text-slate-600]="activeFilter() !== 'pending'"
+            class="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1.5">
+      <span>À faire</span>
+      @if (pendingCount() > 0) {
+        <span class="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-black">
+          {{ pendingCount() }}
+        </span>
+      }
+    </button>
+
+    <button (click)="activeFilter.set('submitted')"
+            [class.bg-primary]="activeFilter() === 'submitted'"
+            [class.text-white]="activeFilter() === 'submitted'"
+            [class.bg-white]="activeFilter() !== 'submitted'"
+            [class.text-slate-600]="activeFilter() !== 'submitted'"
+            class="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+      Soumis & En attente ({{ submittedCount() }})
+    </button>
+
+    <button (click)="activeFilter.set('graded')"
+            [class.bg-primary]="activeFilter() === 'graded'"
+            [class.text-white]="activeFilter() === 'graded'"
+            [class.bg-white]="activeFilter() !== 'graded'"
+            [class.text-slate-600]="activeFilter() !== 'graded'"
+            class="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1.5">
+      <span>Corrigés & Notés</span>
+      @if (gradedCount() > 0) {
+        <span class="px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-black">
+          {{ gradedCount() }}
+        </span>
+      }
+    </button>
+
+    <button (click)="activeFilter.set('resubmit_requested')"
+            [class.bg-primary]="activeFilter() === 'resubmit_requested'"
+            [class.text-white]="activeFilter() === 'resubmit_requested'"
+            [class.bg-white]="activeFilter() !== 'resubmit_requested'"
+            [class.text-slate-600]="activeFilter() !== 'resubmit_requested'"
+            class="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold transition-all cursor-pointer shadow-2xs">
+      Retours demandés ({{ resubmitCount() }})
+    </button>
+  </div>
+
+  <!-- Assignments Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    @for (assignment of filteredAssignments(); track assignment.id) {
+
+      <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        
+        <div class="space-y-3">
+          
+          <!-- Badges Header -->
+          <div class="flex items-center justify-between gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider"
+                  [ngClass]="getTypeBadgeClass(assignment.type)">
+              {{ getTypeLabel(assignment.type) }}
+            </span>
+            <span class="text-xs font-black text-primary bg-purple-50 px-2.5 py-0.5 rounded-lg">
+              Barème : /{{ assignment.maxScore || 20 }} pts
+            </span>
+          </div>
+
+          <!-- Title & Course -->
+          <div>
+            <h3 class="font-display font-bold text-slate-900 text-base line-clamp-2">
+              {{ assignment.title }}
+            </h3>
+            <p class="text-xs text-primary font-semibold mt-0.5 truncate">
+              📖 {{ assignment.courseTitle }}
+            </p>
+          </div>
+
+          <!-- Status Badge -->
+          <div class="p-2.5 rounded-2xl flex items-center justify-between text-xs"
+               [ngClass]="getStatusBadgeBg(statusFor(assignment))">
+            <span class="font-bold flex items-center gap-1.5">
+              <span>{{ getStatusIcon(statusFor(assignment)) }}</span>
+              <span>{{ getStatusLabel(statusFor(assignment), subFor(assignment.id)) }}</span>
+            </span>
+            @if (statusFor(assignment) === 'graded' && subFor(assignment.id)?.score !== undefined) {
+              <span class="font-black px-2 py-0.5 rounded-md bg-emerald-600 text-white text-xs">
+                {{ subFor(assignment.id)?.score }} / {{ assignment.maxScore || 20 }}
+              </span>
+            }
+          </div>
+
+          <!-- Mode & Deadline -->
+          <div class="space-y-1 text-xs text-slate-500">
+            <div class="flex items-center gap-1.5 font-medium">
+              <span>Format :</span>
+              <span class="text-slate-800 font-bold">{{ getModeLabel(assignment.creationMode) }}</span>
+            </div>
+            @if (assignment.dueDate) {
+              <div class="flex items-center gap-1.5">
+                <span>📅 Date limite :</span>
+                <span class="font-semibold text-slate-700">{{ assignment.dueDate.toDate() | date:'dd/MM/yyyy à HH:mm' }}</span>
+              </div>
+            }
+            @if (assignment.timeLimitMinutes) {
+              <div class="flex items-center gap-1.5 text-amber-700 font-semibold">
+                <span>⏱️ Durée de l'examen : {{ assignment.timeLimitMinutes }} minutes</span>
+              </div>
+            }
+          </div>
+
+          <!-- Subject Document (.docx / .pdf) with Download button -->
+          @if (assignment.attachmentUrl) {
+            <div class="p-3 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 truncate text-xs text-blue-950 font-medium">
+                <span class="text-base">{{ assignment.attachmentType === 'docx' ? '📝' : '📄' }}</span>
+                <div class="truncate">
+                  <p class="truncate font-bold text-[11px]">{{ assignment.attachmentName || 'Document Sujet' }}</p>
+                  @if (assignment.attachmentSize) {
+                    <p class="text-[10px] text-blue-600">{{ formatFileSize(assignment.attachmentSize) }}</p>
+                  }
+                </div>
+              </div>
+              <a [href]="assignment.attachmentUrl" target="_blank" download
+                 class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shrink-0 shadow-xs flex items-center gap-1 cursor-pointer">
+                <span>Télécharger</span>
+                <span>📥</span>
+              </a>
+            </div>
+          }
+
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-3 border-t border-slate-100 flex items-center gap-2">
+          @if (statusFor(assignment) === 'graded') {
+            <button (click)="openAssignmentModal(assignment, 'result')"
+                    class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+              <span>Voir ma note & le corrigé 🎯</span>
+            </button>
+          } @else if (statusFor(assignment) === 'submitted' || statusFor(assignment) === 'pending_review') {
+            <button (click)="openAssignmentModal(assignment, 'work')"
+                    class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+              <span>Voir ma copie soumise 📄</span>
+            </button>
+          } @else if (statusFor(assignment) === 'resubmit_requested') {
+            <button (click)="openAssignmentModal(assignment, 'work')"
+                    class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 animate-pulse">
+              <span>Modifier & Renvoyer ma copie 🔄</span>
+            </button>
+          } @else {
+            <button (click)="openAssignmentModal(assignment, 'work')"
+                    class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+              <span>Réaliser & Rendre mon devoir ✍️</span>
+            </button>
+          }
+
+          <button (click)="openAssignmentModal(assignment, 'chat')"
+                  class="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-primary hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                  title="Poser une question au formateur">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    } @empty {
+      <div class="col-span-full text-center py-16 bg-white border border-dashed border-slate-200 rounded-3xl p-8">
+        <div class="text-4xl mb-3">📚</div>
+        <h3 class="font-display text-base font-bold text-slate-800">Aucun devoir ne correspond à ce filtre</h3>
+        <p class="text-xs text-slate-500 mt-1">Vos formateurs publieront les exercices et devoirs directement dans vos cours.</p>
+      </div>
+    }
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODALE COMPLÈTE : RÉALISATION, SOUMISSION & CORRIGÉ      -->
+  <!-- ======================================================== -->
+  @if (selectedAssignment()) {
+
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fade-in"
+         (click)="closeModal()">
+      <div class="relative w-full max-w-2xl bg-white rounded-3xl p-5 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[92vh] overflow-y-auto"
+           (click)="$event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div>
+            <span class="text-[10px] font-bold text-primary uppercase tracking-wider">{{ selectedAssignment()?.courseTitle }}</span>
+            <h2 class="font-display text-lg sm:text-xl font-bold text-slate-900">{{ selectedAssignment()?.title }}</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Barème officiel : /{{ selectedAssignment()?.maxScore || 20 }} points</p>
+          </div>
+          <button (click)="closeModal()" class="text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 cursor-pointer">
+            ✕
+          </button>
+        </div>
+
+        <!-- Tabs inside Modal -->
+        <div class="flex border-b border-slate-200 text-xs">
+          <button (click)="modalTab.set('work')"
+                  [class.text-primary]="modalTab() === 'work'"
+                  [class.border-b-2]="modalTab() === 'work'"
+                  [class.border-primary]="modalTab() === 'work'"
+                  [class.font-bold]="modalTab() === 'work'"
+                  class="px-4 py-2 cursor-pointer transition-all">
+            {{ currentSelectedSubmission() ? 'Ma Copie' : 'Réaliser le devoir' }}
+          </button>
+          
+          <button (click)="modalTab.set('subject')"
+                  [class.text-primary]="modalTab() === 'subject'"
+                  [class.border-b-2]="modalTab() === 'subject'"
+                  [class.border-primary]="modalTab() === 'subject'"
+                  [class.font-bold]="modalTab() === 'subject'"
+                  class="px-4 py-2 cursor-pointer transition-all">
+            Sujet & Consignes
+          </button>
+
+          @if (currentSelectedSubmission()?.status === 'graded') {
+            <button (click)="modalTab.set('result')"
+                    [class.text-emerald-700]="modalTab() === 'result'"
+                    [class.border-b-2]="modalTab() === 'result'"
+                    [class.border-emerald-600]="modalTab() === 'result'"
+                    [class.font-bold]="modalTab() === 'result'"
+                    class="px-4 py-2 cursor-pointer transition-all flex items-center gap-1 text-emerald-700 font-bold">
+              <span>Note & Corrigé 🎯</span>
+            </button>
+          }
+
+          <button (click)="modalTab.set('chat')"
+                  [class.text-primary]="modalTab() === 'chat'"
+                  [class.border-b-2]="modalTab() === 'chat'"
+                  [class.border-primary]="modalTab() === 'chat'"
+                  [class.font-bold]="modalTab() === 'chat'"
+                  class="px-4 py-2 cursor-pointer transition-all flex items-center gap-1">
+            <span>Échanges avec le Prof 💬</span>
+            @if (messagesList().length > 0) {
+              <span class="px-1.5 py-0.2 rounded-full bg-primary text-white text-[10px] font-bold">
+                {{ messagesList().length }}
+              </span>
+            }
+          </button>
+        </div>
+
+        <!-- ────────────────────────────────────────────────────────── -->
+        <!-- TAB 1 : SUJET & CONSIGNES                                  -->
+        <!-- ────────────────────────────────────────────────────────── -->
+        @if (modalTab() === 'subject') {
+          <div class="space-y-4 text-xs">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Consignes du professeur :</h4>
+              <p class="text-slate-700 whitespace-pre-wrap leading-relaxed">{{ selectedAssignment()?.description }}</p>
+            </div>
+
+            @if (selectedAssignment()?.attachmentUrl) {
+              <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">{{ selectedAssignment()?.attachmentType === 'docx' ? '📝' : '📄' }}</span>
+                  <div>
+                    <h5 class="font-bold text-blue-950">{{ selectedAssignment()?.attachmentName || 'Sujet officiel' }}</h5>
+                    <p class="text-[11px] text-blue-700">Document Word ou PDF fourni par le formateur</p>
+                  </div>
+                </div>
+                <a [href]="selectedAssignment()?.attachmentUrl" target="_blank" download
+                   class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>Télécharger le sujet</span>
+                  <span>📥</span>
+                </a>
+              </div>
+            }
+
+            @if (selectedAssignment()?.questions?.length) {
+              <div class="space-y-2">
+                <h4 class="font-bold text-slate-800">Questions de l'évaluation ({{ selectedAssignment()?.questions?.length }}) :</h4>
+                <div class="space-y-2">
+                  @for (q of selectedAssignment()?.questions; track q.id; let idx = $index) {
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span class="font-medium text-slate-800">{{ q.question }}</span>
+                      <span class="font-bold text-primary shrink-0 font-mono">/ {{ q.points }} pts</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ────────────────────────────────────────────────────────── -->
+        <!-- TAB 2 : MA COPIE & SOUMISSION                              -->
+        <!-- ────────────────────────────────────────────────────────── -->
+        @if (modalTab() === 'work') {
+          <div class="space-y-5">
+            
+            <!-- Si déjà soumis et non modifiable -->
+            @if (currentSelectedSubmission() && currentSelectedSubmission()!.status !== 'resubmit_requested') {
+              <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                    <span>Copie envoyée le {{ formatTs(getSub().submittedAt) | date:'dd/MM/yyyy à HH:mm' }}</span>
+                  </div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
+                    {{ getSub().status === 'graded' ? 'Corrigée' : 'En attente de correction' }}
+                  </span>
+                </div>
+
+                @if (getSub().attachmentUrl) {
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-emerald-200 text-xs">
+                    <div class="flex items-center gap-2 truncate">
+                      <span>📄</span>
+                      <span class="font-bold truncate text-slate-800">{{ getSub().attachmentName }}</span>
+                    </div>
+                    <a [href]="getSub().attachmentUrl" target="_blank" class="text-primary font-bold hover:underline shrink-0">
+                      Télécharger ma copie
+                    </a>
+                  </div>
+                }
+
+                @if (getSub().textContent) {
+                  <div class="p-3 rounded-xl bg-white border border-emerald-200 text-xs whitespace-pre-wrap text-slate-800">
+                    {{ getSub().textContent }}
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- FORMULAIRE DE SOUMISSION (Si pas encore soumis ou si retour demandé) -->
+            @if (!currentSelectedSubmission() || currentSelectedSubmission()!.status === 'resubmit_requested') {
+              
+              @if (currentSelectedSubmission()?.status === 'resubmit_requested') {
+                <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <p class="font-bold flex items-center gap-1.5">
+                    <span>⚠️ Demande de correction du formateur :</span>
+                  </p>
+                  <p>{{ currentSelectedSubmission()?.feedbackText || 'Veuillez corriger votre copie et la déposer à nouveau.' }}</p>
+                </div>
+              }
+
+              <!-- OPTION 1 : RÉPONSE QUESTION PAR QUESTION (Si Mode A) -->
+              @if (selectedAssignment()?.creationMode === 'direct' && selectedAssignment()?.questions?.length) {
+                <div class="space-y-4">
+                  <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Répondez aux questions directement :</h4>
+                  @for (q of selectedAssignment()?.questions; track q.id; let idx = $index) {
+                    <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div class="flex items-center justify-between text-xs font-bold text-slate-900">
+                        <span>{{ q.question }}</span>
+                        <span class="text-primary font-mono">/ {{ q.points }} pts</span>
+                      </div>
+                      <textarea [(ngModel)]="questionAnswerTexts[q.id]" rows="3"
+                                placeholder="Rédigez votre réponse ici..."
+                                class="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:border-primary outline-none resize-none"></textarea>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- OPTION 2 : TÉLÉCHARGEMENT DU MODÈLE ET DÉPÔT DU DOCUMENT WORD / PDF COMPLÉTÉ -->
+              @if (selectedAssignment()?.creationMode === 'document' || selectedAssignment()?.creationMode === 'template_to_fill' || selectedAssignment()?.allowFileUpload) {
+                <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                  
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-900">Document de réponse (.docx ou .pdf)</h4>
+                      <p class="text-[11px] text-slate-500">Travaillez sur votre logiciel Word ou éditeur PDF, puis déposez votre document complété.</p>
+                    </div>
+                    @if (selectedAssignment()?.attachmentUrl) {
+                      <a [href]="selectedAssignment()?.attachmentUrl" target="_blank" download
+                         class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs shrink-0 flex items-center gap-1 cursor-pointer">
+                        <span>📥 Modèle</span>
+                      </a>
+                    }
+                  </div>
+
+                  <!-- File Input Zone -->
+                  <div class="border-2 border-dashed border-slate-300 rounded-2xl p-4 text-center hover:border-primary transition-colors bg-white cursor-pointer"
+                       (click)="fileInput.click()">
+                    <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.docx,.doc" class="hidden">
+                    <div class="space-y-1">
+                      <div class="text-3xl">📎</div>
+                      <p class="text-xs font-bold text-slate-800">Cliquez pour sélectionner votre fichier complété</p>
+                      <p class="text-[10px] text-slate-400">Formats acceptés : Microsoft Word (.docx, .doc) ou PDF (.pdf)</p>
+                    </div>
+                  </div>
+
+                  <!-- File Preview Card -->
+                  @if (selectedFile) {
+                    <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                      <div class="flex items-center gap-2 truncate">
+                        <span class="text-lg">📄</span>
+                        <div class="truncate">
+                          <p class="font-bold text-emerald-950 truncate">{{ selectedFile.name }}</p>
+                          <p class="text-[10px] text-emerald-700">{{ formatFileSize(selectedFile.size) }}</p>
+                        </div>
+                      </div>
+                      <button (click)="selectedFile = null" class="text-red-500 hover:text-red-700 font-bold p-1 cursor-pointer">
+                        ✕
+                      </button>
+                    </div>
+                  }
+
+                </div>
+              }
+
+              <!-- Texte libre complémentaire (si autorisé) -->
+              @if (selectedAssignment()?.allowDirectAnswer) {
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-800">
+                    Remarques ou texte explicatif complémentaire (Optionnel) :
+                  </label>
+                  <textarea [(ngModel)]="freeTextContent" rows="3"
+                            placeholder="Vous pouvez ajouter une note explicative pour votre professeur..."
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:border-primary outline-none resize-none"></textarea>
+                </div>
+              }
+
+              <!-- Upload Progress bar -->
+              @if (isUploading()) {
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between text-xs text-slate-600">
+                    <span>Envoi du document en cours...</span>
+                    <span>{{ uploadProgress() }}%</span>
+                  </div>
+                  <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div class="bg-primary h-full transition-all duration-300" [style.width.%]="uploadProgress()"></div>
+                  </div>
+                </div>
+              }
+
+              <!-- Submission Button Triggering Confirmation -->
+              <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" (click)="closeModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
+                  Annuler
+                </button>
+                <button type="button" (click)="promptSubmissionConfirmation()" [disabled]="!canSubmit() || isUploading()"
+                        class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-md shadow-primary/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95 transition-all">
+                  <span>Valider & Soumettre ma copie 🚀</span>
+                </button>
+              </div>
+
+            }
+
+          </div>
+        }
+
+        <!-- ────────────────────────────────────────────────────────── -->
+        <!-- TAB 3 : NOTE & RÉSULTAT DU CORRIGÉ                         -->
+        <!-- ────────────────────────────────────────────────────────── -->
+        @if (modalTab() === 'result' && currentSelectedSubmission()?.status === 'graded') {
+          <div class="space-y-5 text-xs">
+            
+            <!-- Result Banner -->
+            <div class="p-6 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-100">Résultat de votre évaluation</span>
+                <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-black">Corrigé ✓</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="font-display text-4xl sm:text-5xl font-black">{{ currentSelectedSubmission()?.score }}</span>
+                <span class="text-lg font-bold text-emerald-100">/ {{ currentSelectedSubmission()?.maxScore || 20 }} points</span>
+              </div>
+              @if (currentSelectedSubmission()?.generalAppreciation) {
+                <p class="text-sm font-semibold text-white/95 pt-1">
+                  « {{ currentSelectedSubmission()?.generalAppreciation }} »
+                </p>
+              }
+            </div>
+
+            <!-- Detailed Teacher Feedback -->
+            @if (currentSelectedSubmission()?.feedbackText) {
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <h4 class="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>📝 Commentaires détaillés du formateur :</span>
+                </h4>
+                <p class="text-slate-700 whitespace-pre-wrap leading-relaxed">{{ currentSelectedSubmission()?.feedbackText }}</p>
+              </div>
+            }
+
+            <!-- Voice Feedback Audio Player -->
+            @if (currentSelectedSubmission()?.feedbackVoiceUrl) {
+              <div class="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-2">
+                <h4 class="font-bold text-purple-950 flex items-center gap-1.5">
+                  <span>🎙️ Note vocale explicative du professeur :</span>
+                </h4>
+                <audio [src]="currentSelectedSubmission()?.feedbackVoiceUrl" controls class="w-full h-10 rounded-xl"></audio>
+              </div>
+            }
+
+            <!-- Corrected Document (.pdf / .docx) -->
+            @if (currentSelectedSubmission()?.correctedDocumentUrl) {
+              <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-2xl">📄</span>
+                  <div class="truncate">
+                    <h5 class="font-bold text-blue-950 truncate">{{ currentSelectedSubmission()?.correctedDocumentName || 'Document Corrigé & Annoté' }}</h5>
+                    <p class="text-[10px] text-blue-700">Téléchargez les annotations de votre professeur</p>
+                  </div>
+                </div>
+                <a [href]="currentSelectedSubmission()?.correctedDocumentUrl" target="_blank" download
+                   class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs shrink-0 cursor-pointer">
+                  Télécharger le corrigé 📥
+                </a>
+              </div>
+            }
+
+            <!-- Question by question breakdown if available -->
+            @if (currentSelectedSubmission()?.questionAnswers?.length) {
+              <div class="space-y-2 pt-2">
+                <h4 class="font-bold text-slate-800">Détail par question :</h4>
+                <div class="space-y-2">
+                  @for (qa of currentSelectedSubmission()?.questionAnswers; track qa.questionId) {
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                      <div class="flex items-center justify-between font-bold">
+                        <span class="text-slate-800">{{ qa.questionText }}</span>
+                        <span class="text-emerald-700 font-mono">{{ qa.pointsEarned ?? '-' }} / {{ qa.maxPoints }} pts</span>
+                      </div>
+                      @if (qa.teacherComment) {
+                        <p class="text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">
+                          Remarque : {{ qa.teacherComment }}
+                        </p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+          </div>
+        }
+
+        <!-- ────────────────────────────────────────────────────────── -->
+        <!-- TAB 4 : ÉCHANGES & MESSAGES AVEC LE PROFESSEUR             -->
+        <!-- ────────────────────────────────────────────────────────── -->
+        @if (modalTab() === 'chat') {
+          <div class="flex flex-col h-[450px] space-y-3">
+            
+            <div class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 overflow-y-auto space-y-3">
+              @for (msg of messagesList(); track msg.id) {
+                <div class="p-3 rounded-2xl max-w-[85%] text-xs space-y-1"
+                     [class.ml-auto]="msg.senderRole === 'student'"
+                     [class.bg-primary]="msg.senderRole === 'student'"
+                     [class.text-white]="msg.senderRole === 'student'"
+                     [class.bg-white]="msg.senderRole !== 'student'"
+                     [class.border]="msg.senderRole !== 'student'"
+                     [class.border-slate-200]="msg.senderRole !== 'student'">
+                  <div class="flex items-center justify-between text-[10px] opacity-75">
+                    <span class="font-bold">{{ msg.senderName }}</span>
+                    <span>{{ msg.createdAt ? (formatTs(msg.createdAt) | date:'HH:mm') : '' }}</span>
+                  </div>
+                  @if (msg.text) {
+                    <p class="whitespace-pre-wrap">{{ msg.text }}</p>
+                  }
+                  @if (msg.voiceUrl) {
+                    <audio [src]="msg.voiceUrl" controls class="w-full h-8 mt-1"></audio>
+                  }
+                </div>
+              } @empty {
+                <div class="p-8 text-center text-slate-400 text-xs">
+                  Aucun message pour le moment. Vous pouvez poser une question directement à votre professeur à propos de ce devoir.
+                </div>
+              }
+            </div>
+
+            <!-- Input Bar -->
+            <div class="flex items-center gap-2">
+              <input type="text" [(ngModel)]="newStudentMessage" (keyup.enter)="sendMessageToTeacher()"
+                     placeholder="Poser une question sur ce devoir..."
+                     class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-primary">
+              <button (click)="sendMessageToTeacher()" [disabled]="!newStudentMessage.trim() || isSendingMessage()"
+                      class="px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-600 disabled:opacity-50 cursor-pointer">
+                Envoyer
+              </button>
+            </div>
+
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- ======================================================== -->
+  <!-- MODALE DE CONFIRMATION ANTI-ERREUR AVANT SOUMISSION       -->
+  <!-- ======================================================== -->
+  @if (showConfirmModal()) {
+    <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fade-in">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl border border-slate-200">
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
+          ⚠️
+        </div>
+
+        <div class="text-center space-y-2">
+          <h3 class="font-display font-bold text-lg text-slate-900">Confirmer la soumission définitive ?</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Vous êtes sur le point d'envoyer votre copie pour <strong>« {{ selectedAssignment()?.title }} »</strong>.
+            @if (selectedFile) {
+              <span> Fichier joint : <strong>{{ selectedFile.name }}</strong>.</span>
+            }
+            Assurez-vous d'avoir bien relu toutes vos réponses avant validation.
+          </p>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <button (click)="showConfirmModal.set(false)"
+                  class="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
+            Vérifier à nouveau
+          </button>
+          <button (click)="executeFinalSubmission()"
+                  class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold shadow-md shadow-primary/25 cursor-pointer">
+            Confirmer & Envoyer 🚀
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

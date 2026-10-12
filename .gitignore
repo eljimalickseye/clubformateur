@@ -1,0 +1,48 @@
+# Angular
+.angular/
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+functions/node_modules
+functions/lib
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+.firebaserc
+
+# Environment (sensitive)
+src/environments/environment.prod.ts
+
+# IDE
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Misc
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Testing
+/coverage
+
+# Emulator data
+emulator-data/

@@ -1,0 +1,267 @@
+/* ── Tailwind base ─────────────────────────────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts ──────────────────────────────────────── */
+/* Chargées via <link> dans index.html (inlinées au build, non bloquantes en cascade). */
+
+/* ── Base resets ────────────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    /* Pas de scroll-behavior: smooth global : il rendait chaque changement de page/scroll programmatique lent sur iOS */
+    text-rendering: auto;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-dark text-light font-body antialiased selection:bg-primary/20 selection:text-primary;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Supprime le délai de double-tap/zoom sur les éléments interactifs (réactivité immédiate au toucher) */
+  a, button, input, select, textarea, label, summary, [role="button"], [routerLink] {
+    touch-action: manipulation;
+  }
+
+  /* Images : pas de glisser-déposer fantôme sur iOS */
+  img {
+    -webkit-user-drag: none;
+  }
+
+  /* Headings typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-light;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-dark; }
+  ::-webkit-scrollbar-thumb { @apply bg-dark-surface3 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-primary/50; }
+
+  /* Selection */
+  ::selection { @apply bg-primary/20 text-light; }
+
+  /* Focus visible */
+  :focus-visible { @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-dark; }
+}
+
+/* ── Component utilities ─────────────────────────────── */
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply px-5 py-2.5 bg-primary text-white font-semibold rounded-lg
+           hover:bg-primary-400 active:scale-95 transition-all text-sm;
+  }
+  .btn-secondary {
+    @apply px-5 py-2.5 border border-dark-border text-light rounded-lg bg-dark-surface
+           hover:bg-dark-surface2 active:scale-95 transition-all text-sm;
+  }
+  .btn-ghost {
+    @apply px-5 py-2.5 text-light-muted rounded-lg hover:text-light
+           hover:bg-dark-surface2 transition-all text-sm;
+  }
+  .btn-danger {
+    @apply px-5 py-2.5 bg-red-500 text-white font-semibold rounded-lg
+           hover:bg-red-600 active:scale-95 transition-all text-sm;
+  }
+
+  /* Form inputs */
+  .input {
+    @apply w-full px-4 py-2.5 bg-dark-surface border border-dark-border rounded-lg
+           text-light placeholder-light-muted text-base sm:text-sm shadow-sm
+           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors;
+  }
+  .input-label {
+    @apply block text-sm font-medium text-light mb-1.5;
+  }
+  .input-error {
+    @apply text-red-400 text-xs mt-1;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-dark-surface border border-dark-border rounded-xl shadow-card;
+  }
+  .card-hover {
+    @apply card hover:border-primary/40 hover:shadow-card-hover transition-all duration-300;
+  }
+
+  /* Modales Plein Écran adaptatives (Plein écran sur Mobile / iPhone, Centrées et stylisées sur Desktop) */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 animate-fade-in;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .modal-dialog-fullscreen {
+    @apply w-full h-full sm:h-auto sm:max-w-lg bg-white sm:rounded-3xl p-5 sm:p-8 shadow-2xl border-0 sm:border sm:border-slate-200 overflow-y-auto max-sm:max-h-[100dvh];
+    padding-top: max(1.25rem, env(safe-area-inset-top, 1.25rem));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Badges */
+  .badge-primary { @apply px-2 py-0.5 bg-primary/15 text-primary text-xs font-medium rounded; }
+  .badge-success { @apply px-2 py-0.5 bg-emerald-400/15 text-emerald-400 text-xs font-medium rounded; }
+  .badge-warning { @apply px-2 py-0.5 bg-yellow-400/15 text-yellow-400 text-xs font-medium rounded; }
+  .badge-danger  { @apply px-2 py-0.5 bg-red-400/15 text-red-400 text-xs font-medium rounded; }
+  .badge-info    { @apply px-2 py-0.5 bg-blue-400/15 text-blue-400 text-xs font-medium rounded; }
+
+  /* Section heading */
+  .section-title {
+    @apply font-display text-3xl font-bold text-light;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+
+  .table-modern {
+    @apply w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-dark-border bg-dark-surface;
+  }
+  .table-modern thead th {
+    @apply bg-dark-surface2 text-light-muted text-xs font-semibold uppercase tracking-wide px-4 py-3 text-left border-b border-dark-border;
+  }
+  .table-modern tbody td {
+    @apply px-4 py-3 text-sm text-light border-b border-dark-border;
+  }
+  .table-modern tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table-modern tbody tr:hover td {
+    @apply bg-primary/5;
+  }
+
+  .modal-surface {
+    @apply bg-dark-surface border border-dark-border rounded-xl shadow-card;
+  }
+
+  /* Toast override */
+  .toast-container {
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────────── */
+@layer utilities {
+  /* Text gradient */
+  .text-gradient {
+    background: linear-gradient(135deg, #2563EB, #38BDF8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gold shimmer animation */
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Line clamp utilities (extra) */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* RTL support for Arabic content */
+  .rtl { direction: rtl; text-align: right; }
+  .ar { font-family: 'Cormorant Garamond', Georgia, serif; }
+}
+
+/* ── ngx-toastr override ─────────────────────────────── */
+#toast-container .toast {
+  background-color: #FFFFFF !important;
+  border: 1px solid #D9E2EC !important;
+  color: #0F172A !important;
+  font-family: 'DM Sans', sans-serif !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+#toast-container .toast-success {
+  border-left: 3px solid #10b981 !important;
+}
+#toast-container .toast-error {
+  border-left: 3px solid #ef4444 !important;
+}
+#toast-container .toast-warning {
+  border-left: 3px solid #f59e0b !important;
+}
+#toast-container .toast-info {
+  border-left: 3px solid #2563EB !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PERFORMANCE / FLUIDITÉ (iPhone, iPad, Mac Safari)
+   ══════════════════════════════════════════════════════════ */
+
+/*
+ * 1. Halos décoratifs (blur-[100px], blur-3xl…)
+ *    Un filter: blur() de 100-200px sur un élément de 600-1000px est l'une des opérations
+ *    les plus coûteuses pour Safari/WebKit (re-rastérisation à chaque scroll/animation).
+ *    On obtient un rendu quasi identique avec un masque radial, beaucoup moins coûteux.
+ */
+[class^="blur-["], [class*=" blur-["], .blur-3xl, .blur-2xl {
+  filter: none !important;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.45) 45%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.45) 45%, transparent 100%);
+}
+
+/*
+ * 2. Appareils tactiles (iPhone / iPad / Android)
+ *    backdrop-filter (effet « verre dépoli ») force le GPU à recalculer le flou de tout ce qui
+ *    passe derrière à chaque image pendant le scroll → principale cause de saccades sur iOS.
+ *    On le désactive et on rend les fonds un peu plus opaques pour garder la lisibilité.
+ */
+@media (hover: none), (pointer: coarse) {
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Surfaces « verre » semi-transparentes (navbar, en-têtes) → quasi opaques sans flou */
+  .bg-white\/80, .bg-white\/85 { background-color: rgba(255, 255, 255, 0.97) !important; }
+
+  /* Zones défilantes internes (chat, listes, modales) : le « rebond » ne se propage plus à toute la page */
+  .overflow-y-auto {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* 3. Accessibilité + économie de batterie : respecte « Réduire les animations » (iOS Réglages › Accessibilité) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Les indicateurs de chargement restent animés (information d'état) */
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
