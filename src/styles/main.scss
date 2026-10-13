@@ -160,15 +160,15 @@
 @layer utilities {
   /* Text gradient */
   .text-gradient {
-    background: linear-gradient(135deg, #2563EB, #38BDF8);
+    background: linear-gradient(135deg, #13C7A3, #0D6B4D);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Gold shimmer animation */
+  /* Shimmer animation */
   .shimmer {
-    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(19, 199, 163, 0.12), transparent);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
   }

@@ -23,22 +23,22 @@ export interface TeacherCarouselItem {
   standalone: true,
   imports: [CommonModule, RouterLink, DecimalPipe, DatePipe],
   template: `
-    <div class="relative w-full rounded-3xl bg-gradient-to-br from-slate-900 via-[#0F172A] to-slate-950 p-5 sm:p-8 lg:p-10 shadow-2xl border border-slate-800/80 overflow-hidden font-body text-white"
+    <div class="relative w-full rounded-3xl bg-gradient-to-br from-[#062C32] via-[#05272D] to-[#041D21] p-5 sm:p-8 lg:p-10 shadow-2xl border border-emerald-900/60 overflow-hidden font-body text-white"
          (mouseenter)="pauseAutoPlay()" (mouseleave)="resumeAutoPlay()">
 
       <!-- Ambient Glow Decorators -->
-      <div class="absolute -top-24 -left-24 w-72 h-72 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
-      <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-sky-500/15 rounded-full blur-[120px] pointer-events-none"></div>
+      <div class="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-emerald-400/10 rounded-full blur-[120px] pointer-events-none"></div>
 
       <!-- Header with Section Title & Carousel Controls -->
       <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-sky-400 text-xs font-bold uppercase tracking-wider mb-2.5">
-            <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/50 border border-emerald-600/40 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2.5">
+            <span class="w-2 h-2 rounded-full bg-[#13C7A3] animate-ping"></span>
             <span>Club des Formateurs • Corps Enseignant</span>
           </div>
           <h2 class="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            Rencontrez nos <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-primary-300 to-indigo-400">Professeurs & Formateurs</span>
+            Rencontrez nos <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#13C7A3] via-emerald-300 to-[#35D3A3]">Professeurs & Formateurs</span>
           </h2>
           <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
             Visionnez leurs vidéos de présentation, découvrez leurs emplois du temps et rejoignez leurs sessions de cours en direct.
@@ -79,7 +79,7 @@ export interface TeacherCarouselItem {
         <!-- Cards Grid / Slider View -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 relative z-10 transition-all duration-500">
           @for (item of visibleItems(); track item.teacher.uid) {
-            <div class="relative flex flex-col justify-between rounded-3xl bg-slate-800/70 backdrop-blur-xl border border-white/10 hover:border-primary/40 p-5 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group">
+            <div class="relative flex flex-col justify-between rounded-3xl bg-[#06281F]/90 backdrop-blur-xl border border-emerald-800/50 hover:border-[#13C7A3]/60 p-5 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group">
               
               <!-- Top: Live Badge (if live now) -->
               @if (item.isCurrentlyLive) {
@@ -95,8 +95,8 @@ export interface TeacherCarouselItem {
                   <div class="relative shrink-0">
                     <img loading="lazy" decoding="async" [src]="item.teacher.photoURL || getAvatarUrl(item.teacher.displayName)"
                          [alt]="item.teacher.displayName"
-                         class="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover ring-2 ring-primary/40 shadow-md group-hover:scale-105 transition-transform">
-                    <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-slate-900 text-white"
+                         class="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover ring-2 ring-[#13C7A3]/40 shadow-md group-hover:scale-105 transition-transform">
+                    <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#13C7A3] ring-2 ring-slate-900 text-white"
                           title="Formateur Certifié">
                       <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -106,11 +106,11 @@ export interface TeacherCarouselItem {
 
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-1.5">
-                      <h3 class="font-display font-bold text-white text-base sm:text-lg truncate group-hover:text-sky-300 transition-colors">
+                      <h3 class="font-display font-bold text-white text-base sm:text-lg truncate group-hover:text-emerald-300 transition-colors">
                         {{ item.teacher.displayName }}
                       </h3>
                     </div>
-                    <p class="text-xs font-semibold text-sky-400 truncate">
+                    <p class="text-xs font-semibold text-emerald-400 truncate">
                       {{ item.teacher.speciality || 'Formateur Expert' }}
                     </p>
 
@@ -143,9 +143,9 @@ export interface TeacherCarouselItem {
                 </div>
 
                 <!-- 2. Presentation Video Banner / Button -->
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-500/15 via-primary/25 to-indigo-500/20 border border-sky-400/30 p-3 flex items-center justify-between gap-3 group/vid">
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/20 via-[#13C7A3]/25 to-teal-500/20 border border-emerald-400/30 p-3 flex items-center justify-between gap-3 group/vid">
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-primary text-white flex items-center justify-center shrink-0 shadow-md shadow-primary/30 group-hover/vid:scale-110 transition-transform">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#13C7A3] to-emerald-400 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/30 group-hover/vid:scale-110 transition-transform">
                       <svg class="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
                       </svg>
@@ -160,7 +160,7 @@ export interface TeacherCarouselItem {
                   </div>
 
                   <button (click)="openVideoModal(item)"
-                          class="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-slate-900 text-[11px] font-black shrink-0 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5">
+                          class="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-slate-900 text-[11px] font-black shrink-0 transition-all active:scale-95 cursor-pointer shadow-sm flex items-center gap-1.5">
                     <span>Regarder</span>
                     <svg class="w-3 h-3 fill-slate-900" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z"/>
@@ -169,7 +169,7 @@ export interface TeacherCarouselItem {
                 </div>
 
                 <!-- 3. Emploi du Temps / Schedule Box -->
-                <div class="rounded-2xl bg-slate-900/90 border border-slate-700/70 p-3.5 space-y-2.5">
+                <div class="rounded-2xl bg-[#03181C]/90 border border-emerald-900/60 p-3.5 space-y-2.5">
                   <div class="flex items-center justify-between text-xs gap-2">
                     <span class="font-bold text-sky-300 flex items-center gap-1.5 truncate">
                       <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -228,7 +228,7 @@ export interface TeacherCarouselItem {
                 
                 <!-- Primary Action: Contact teacher by message -->
                 <button (click)="contactTeacher(item.teacher)"
-                        class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-500 via-primary to-indigo-600 hover:from-sky-400 hover:to-primary-600 text-white text-xs font-bold transition-all text-center cursor-pointer active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-primary/25">
+                        class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#13C7A3] to-[#12A57A] hover:bg-[#12A57A] text-white text-xs font-bold transition-all text-center cursor-pointer active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-emerald-500/25">
                   <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
@@ -238,7 +238,7 @@ export interface TeacherCarouselItem {
                 <!-- Secondary Actions: Courses and Profile -->
                 <div class="flex items-center justify-between gap-2">
                   <button (click)="onFilterTeacher(item.teacher.uid, item.teacher.displayName)"
-                          class="flex-1 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-sky-200 hover:text-white text-xs font-semibold transition-all text-center cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 border border-white/10">
+                          class="flex-1 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-emerald-200 hover:text-white text-xs font-semibold transition-all text-center cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 border border-white/10">
                     <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
@@ -266,7 +266,7 @@ export interface TeacherCarouselItem {
             @for (idx of dotsArray(); track idx) {
               <button (click)="goToSlide(idx)"
                       [class.w-8]="currentSlide() === idx"
-                      [class.bg-sky-400]="currentSlide() === idx"
+                      [class.bg-[#13C7A3]]="currentSlide() === idx"
                       [class.w-2.5]="currentSlide() !== idx"
                       [class.bg-slate-600]="currentSlide() !== idx"
                       class="h-2.5 rounded-full transition-all duration-300 cursor-pointer"

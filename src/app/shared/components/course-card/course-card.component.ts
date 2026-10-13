@@ -106,15 +106,15 @@ import { Course } from '../../../core/models';
               <span class="text-[11px] sm:text-xs font-semibold text-light-muted">Formateur</span>
             </div>
           </div>
-          
+
           <div class="text-right">
-            @if (course.isFree) {
-              <span class="text-lg sm:text-xl font-black text-emerald-500">Offert</span>
+            @if (course.isFree || course.price === 0) {
+              <span class="text-lg sm:text-xl font-black text-emerald-600">GRATUIT</span>
             } @else {
               <div class="flex flex-col items-end">
-                <span class="text-lg sm:text-xl font-black text-primary">{{ course.price | number }} F</span>
+                <span class="text-lg sm:text-xl font-black text-[#0D6B4D]">{{ course.price | number }} FCFA</span>
                 @if (course.originalPrice && course.originalPrice > course.price) {
-                  <span class="text-xs text-light-muted line-through opacity-70">{{ course.originalPrice | number }} F</span>
+                  <span class="text-xs text-slate-400 line-through">{{ course.originalPrice | number }} FCFA</span>
                 }
               </div>
             }
