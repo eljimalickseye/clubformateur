@@ -25,8 +25,6 @@ class AuthController extends Controller
         ]);
 
         $uid = 'user_' . Str::lower(Str::random(12));
-        $token = Str::random(80);
-
         $user = User::create([
             'uid' => $uid,
             'name' => $validated['displayName'],
@@ -39,8 +37,8 @@ class AuthController extends Controller
             'is_verified' => true,
             'onboarding_step' => 3,
             'balance_fcfa' => 0,
-            'api_token' => $token,
         ]);
+        $token = $user->issueToken();
 
         return response()->json([
             'success' => true,
@@ -65,14 +63,11 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (!$user->api_token) {
-            $user->api_token = Str::random(80);
-            $user->save();
-        }
+        $token = $user->issueToken();
 
         return response()->json([
             'success' => true,
-            'token' => $user->api_token,
+            'token' => $token,
             'user' => $this->formatUser($user),
         ]);
     }
@@ -111,7 +106,6 @@ class AuthController extends Controller
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            $token = Str::random(80);
             $user = User::create([
                 'uid' => 'user_' . Str::lower(Str::random(12)),
                 'name' => $validated['displayName'] ?? explode('@', $email)[0],
@@ -123,21 +117,18 @@ class AuthController extends Controller
                 'is_verified' => true,
                 'onboarding_step' => 3,
                 'balance_fcfa' => 0,
-                'api_token' => $token,
             ]);
         } else {
-            if (!$user->api_token) {
-                $user->api_token = Str::random(80);
-            }
             if (!empty($validated['photoUrl']) && empty($user->photo_url)) {
                 $user->photo_url = $validated['photoUrl'];
             }
             $user->save();
         }
+        $token = $user->issueToken();
 
         return response()->json([
             'success' => true,
-            'token' => $user->api_token,
+            'token' => $token,
             'user' => $this->formatUser($user),
         ]);
     }
@@ -194,8 +185,7 @@ class AuthController extends Controller
     {
         $user = $this->resolveUser($request);
         if ($user) {
-            $user->api_token = null;
-            $user->save();
+            $user->revokeToken();
         }
 
         return response()->json(['success' => true, 'message' => 'Déconnecté avec succès']);
@@ -203,9 +193,7 @@ class AuthController extends Controller
 
     private function resolveUser(Request $request): ?User
     {
-        $bearer = $request->bearerToken();
-
-        return $bearer ? User::where('api_token', $bearer)->first() : null;
+        return $request->user() ?? User::findByToken($request->bearerToken());
     }
 
     private function formatUser(User $user): array

@@ -12,7 +12,7 @@ class AuthenticateApiToken
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
-        $user = $token ? User::where('api_token', $token)->first() : null;
+        $user = User::findByToken($token);
 
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'Non authentifié'], 401);

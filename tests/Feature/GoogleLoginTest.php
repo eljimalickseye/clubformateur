@@ -20,7 +20,7 @@ class GoogleLoginTest extends TestCase
             'email' => 'victime@example.com',
             'password' => 'motdepasse-solide',
             'role' => 'student',
-            'api_token' => 'token-victime',
+            'api_token' => hash('sha256', 'token-victime'),
         ]);
 
         $this->postJson('/api/v1/auth/google', ['email' => 'victime@example.com'])->assertStatus(422);

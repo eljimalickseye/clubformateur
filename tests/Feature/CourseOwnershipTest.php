@@ -19,7 +19,7 @@ class CourseOwnershipTest extends TestCase
             'email' => $uid . '@example.com',
             'password' => 'motdepasse-solide',
             'role' => $role,
-            'api_token' => 'token-' . $uid,
+            'api_token' => hash('sha256', 'token-' . $uid),
         ]);
     }
 

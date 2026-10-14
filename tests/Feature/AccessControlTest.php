@@ -18,7 +18,7 @@ class AccessControlTest extends TestCase
             'email' => $email,
             'password' => 'motdepasse-solide',
             'role' => $role,
-            'api_token' => 'token-' . $role,
+            'api_token' => hash('sha256', 'token-' . $role),
         ]);
     }
 
@@ -60,7 +60,7 @@ class AccessControlTest extends TestCase
             ->assertStatus(401);
         $this->postJson('/api/v1/auth/login', ['email' => 'admin@example.com', 'password' => 'motdepasse-solide'])
             ->assertOk()
-            ->assertJsonPath('token', 'token-admin');
+            ->assertJsonStructure(['token']);
     }
 
     public function test_login_does_not_provision_demo_accounts_from_email_keywords(): void

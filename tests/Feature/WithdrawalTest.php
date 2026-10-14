@@ -21,7 +21,7 @@ class WithdrawalTest extends TestCase
             'password' => 'motdepasse-solide',
             'role' => 'teacher',
             'balance_fcfa' => $balance,
-            'api_token' => 'token-teacher',
+            'api_token' => hash('sha256', 'token-teacher'),
         ]);
     }
 
@@ -80,7 +80,7 @@ class WithdrawalTest extends TestCase
             'email' => 'eleve@example.com',
             'password' => 'motdepasse-solide',
             'role' => 'student',
-            'api_token' => 'token-student',
+            'api_token' => hash('sha256', 'token-student'),
         ]);
 
         $this->withToken('token-student')
@@ -99,7 +99,7 @@ class WithdrawalTest extends TestCase
             'email' => 'autre@example.com',
             'password' => 'motdepasse-solide',
             'role' => 'teacher',
-            'api_token' => 'token-other',
+            'api_token' => hash('sha256', 'token-other'),
         ]);
 
         $this->withToken('token-other')->getJson('/api/v1/teachers/user_teacher/wallet')->assertStatus(403);
