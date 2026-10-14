@@ -29,7 +29,8 @@ $registerRoutes = function () {
         try {
             \Illuminate\Support\Facades\DB::connection()->getPdo();
         } catch (\Throwable $e) {
-            $dbStatus = 'error: ' . $e->getMessage();
+            report($e);
+            $dbStatus = 'error';
         }
 
         return response()->json([

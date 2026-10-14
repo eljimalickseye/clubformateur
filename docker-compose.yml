@@ -23,7 +23,7 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=club_des_formateurs
       - DB_USERNAME=club_user
-      - DB_PASSWORD=club_password
+      - DB_PASSWORD=${DB_PASSWORD:?definir DB_PASSWORD dans l'environnement}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
@@ -46,14 +46,14 @@ services:
     environment:
       MYSQL_DATABASE: club_des_formateurs
       MYSQL_USER: club_user
-      MYSQL_PASSWORD: club_password
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_PASSWORD: ${DB_PASSWORD:?definir DB_PASSWORD dans l'environnement}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?definir DB_ROOT_PASSWORD dans l'environnement}
     expose:
       - "3306"
     volumes:
       - club_db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "club_user", "-pclub_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u club_user -p$$MYSQL_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -69,12 +69,12 @@ services:
     container_name: club_formateurs_pma
     restart: unless-stopped
     ports:
-      - "${PMA_PORT:-8096}:80"
+      - "127.0.0.1:${PMA_PORT:-8096}:80"
+    profiles: ["tools"]
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
-      PMA_USER: club_user
-      PMA_PASSWORD: club_password
+      PMA_ARBITRARY: 0
       UPLOAD_LIMIT: 150M
     depends_on:
       - db
