@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
+use App\Models\Homework;
+use App\Models\Message;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -189,6 +194,65 @@ class AuthController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Déconnecté avec succès']);
+    }
+
+    /** Droit d'acces et de portabilite : toutes les donnees rattachees au compte. */
+    public function exportData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'exportedAt' => now()->toIso8601String(),
+            'user' => $this->formatUser($user),
+            'enrollments' => Enrollment::where('student_id', $user->uid)->get(),
+            'homeworks' => Homework::where('student_id', $user->uid)->get(),
+            'messages' => Message::where('sender_id', $user->uid)->get(),
+            'transactions' => Transaction::where('user_id', $user->uid)->get(),
+        ]);
+    }
+
+    /**
+     * Droit a l'effacement : le compte est anonymise. Les transactions
+     * financieres sont conservees (obligation comptable) mais ne sont plus
+     * rattachees a une identite.
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['password' => 'required|string']);
+        $user = $request->user();
+
+        if (!Hash::check($validated['password'], $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Mot de passe incorrect.'], 403);
+        }
+        if ((int) $user->balance_fcfa > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Retirez votre solde avant de supprimer le compte.',
+            ], 409);
+        }
+
+        DB::transaction(function () use ($user) {
+            Message::where('sender_id', $user->uid)->update(['sender_name' => 'Compte supprimé', 'content' => '', 'file_url' => null]);
+            Homework::where('student_id', $user->uid)->update(['student_name' => 'Compte supprimé']);
+            Enrollment::where('student_id', $user->uid)->update(['student_name' => 'Compte supprimé']);
+
+            $user->forceFill([
+                'name' => 'Compte supprimé',
+                'email' => 'supprime+' . $user->uid . '@invalid.local',
+                'password' => Hash::make(Str::random(40)),
+                'phone' => null,
+                'bio' => null,
+                'specialite' => null,
+                'photo_url' => null,
+                'role' => 'student',
+                'is_verified' => false,
+                'api_token' => null,
+                'api_token_expires_at' => null,
+            ])->save();
+        });
+
+        return response()->json(['success' => true, 'message' => 'Compte supprimé.']);
     }
 
     private function resolveUser(Request $request): ?User
