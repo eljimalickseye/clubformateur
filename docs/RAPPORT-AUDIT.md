@@ -140,7 +140,7 @@ Android : appui long sur l'icone puis "Desinstaller". iPhone : appui long sur l'
 
 ## 10. Corrections appliquees (branche audit/securite-donnees)
 
-Chaque correction est un commit separe, accompagne de tests de non-regression (43 tests, 134 assertions, executes sous PHP 8.3 via Docker, tous verts).
+Chaque correction est un commit separe, accompagne de tests de non-regression (49 tests, 182 assertions, executes sous PHP 8.3 via Docker, tous verts).
 
 | Faille | Correction | Commit |
 |---|---|---|
@@ -157,6 +157,8 @@ Chaque correction est un commit separe, accompagne de tests de non-regression (4
 | Contenu payant | Videos de lecons masquees sauf apercu, formation gratuite, inscription active, proprietaire ou admin | fix(formations) |
 | Section 6 | Export des donnees du compte et effacement par anonymisation ; mot de passe Redis | feat(donnees) |
 | Dependances | `composer audit` : aucune vulnerabilite connue | verification |
+| Fuite catalogue | `GET /courses` et `/courses/{id}` exposaient a tout visiteur les videos payantes, les replays et les formations en brouillon : catalogue public limite aux formations publiees, sans video payante | feat(cache) |
+| Performance | Cache serveur versionne du catalogue et des lecons (Redis en deploiement), ETag et Cache-Control pour revalidation navigateur ou PWA, invalidation a chaque ecriture | feat(cache) |
 
 Changements de contrat a repercuter dans le client (application mobile ou web) :
 1. Toutes les requetes hors catalogue public doivent envoyer `Authorization: Bearer <token>`.
@@ -177,3 +179,14 @@ Changements de contrat a repercuter dans le client (application mobile ou web) :
 | Moyenne | Reecriture de l'historique git si le depot a ete partage | Destructif (force push) : a decider par le proprietaire du depot apres rotation des secrets |
 | Basse | Utilisateur non root dans le conteneur | Nginx et supervisord exigent root pour le port et les processus : demande une refonte de l'image |
 | Front-end | Corrections responsive (section 8) et PWA (section 9) | Le depot de l'interface n'est pas fourni |
+
+## 12. Cache des cours et des videos
+
+Cote serveur (fait) :
+- Catalogue public et liste des lecons mis en cache 10 minutes, invalides des qu'une formation, une lecon, un replay, une inscription ou une fin de live est ecrit.
+- Les reponses publiques portent un ETag et `Cache-Control: public, max-age=60, stale-while-revalidate=300` : un client qui renvoie `If-None-Match` recoit un 304 sans corps.
+- La liste des lecons, dont le contenu depend de l'utilisateur, n'est jamais partageable (`private, no-cache`) ; seule la liste brute est en cache serveur et les droits sont appliques a chaque requete.
+
+Cote videos : les fichiers video sont heberges hors de ce depot (le serveur ne stocke que des URL), il n'y a donc pas d'octets a mettre en cache ici. Deux leviers, a mettre en oeuvre hors de ce depot :
+1. Heberger les videos derriere un CDN avec `Cache-Control: public, max-age=31536000, immutable` et des noms de fichiers versionnes.
+2. Dans la PWA, service worker avec strategie stale-while-revalidate pour les appels `/api/v1/courses` et cache-first pour les images et miniatures ; ne pas mettre en cache hors ligne les videos payantes sans mecanisme de licence, sous peine de contourner le controle d'acces.
