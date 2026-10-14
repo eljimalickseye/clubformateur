@@ -82,7 +82,7 @@ class LiveSessionController extends Controller
             'success' => true,
             'session' => $this->formatSession($session),
             'livekit' => [
-                'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
+                'serverUrl' => config('services.livekit.url'),
                 'roomName' => $roomName,
                 'token' => $token,
             ],
@@ -121,7 +121,7 @@ class LiveSessionController extends Controller
             'success' => true,
             'session' => $this->formatSession($session),
             'livekit' => [
-                'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
+                'serverUrl' => config('services.livekit.url'),
                 'roomName' => $session->room_name,
                 'token' => $token,
             ],
@@ -216,7 +216,7 @@ class LiveSessionController extends Controller
 
         return response()->json([
             'success' => true,
-            'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
+            'serverUrl' => config('services.livekit.url'),
             'roomName' => $roomName,
             'token' => $token,
         ]);
@@ -224,8 +224,8 @@ class LiveSessionController extends Controller
 
     private function createLiveKitJwt(string $roomName, string $identity, string $name, bool $isTeacher): string
     {
-        $apiKey = env('LIVEKIT_API_KEY', 'APIsCo9dSx9D6VC');
-        $apiSecret = env('LIVEKIT_API_SECRET', 'uOfP2sDQQjFe3dREQazqQq3fLWkv5JPfMVnikLAoCPAB');
+        $apiKey = config('services.livekit.key');
+        $apiSecret = config('services.livekit.secret');
 
         $header = ['alg' => 'HS256', 'typ' => 'JWT'];
         $now = time();

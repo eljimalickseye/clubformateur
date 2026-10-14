@@ -51,13 +51,13 @@ class PaymentController extends Controller
 
         $method = strtolower((string) $request->input('method', 'wave'));
         $serviceCode = str_contains($method, 'orange') || str_contains($method, 'om')
-            ? env('OM_SERVICE_CODE', 'ORANGE_SN_API_CASH_OUT')
-            : env('WAVE_SERVICE_CODE', 'WAVE_SN_API_CASH_OUT');
-        $providerName = $serviceCode === 'ORANGE_SN_API_CASH_OUT' ? 'Orange Money Sénégal' : 'Wave Sénégal';
+            ? config('services.intech.om_code')
+            : config('services.intech.wave_code');
+        $providerName = $serviceCode === config('services.intech.om_code') ? 'Orange Money Sénégal' : 'Wave Sénégal';
         $externalId = 'ANOUR_CASH_OUT_' . time() . '_' . rand(100, 999);
 
-        $apiKey = env('INTECH_API_KEY', '9D65FC1C-BA2D-4102-BFC5-F0D348277999');
-        $payUrl = env('INTECH_API_PAY_URL', 'https://api.intech.sn/api-services/operation');
+        $apiKey = config('services.intech.key');
+        $payUrl = config('services.intech.pay_url');
 
         $status = 'SUCCESS';
         try {
@@ -114,8 +114,8 @@ class PaymentController extends Controller
     public function checkStatus(Request $request): JsonResponse
     {
         $externalId = $request->input('externalTransactionId');
-        $statusUrl = env('INTECH_API_STATUS_URL', 'https://api.intech.sn/api-services/get-transaction-status');
-        $apiKey = env('INTECH_API_KEY', '9D65FC1C-BA2D-4102-BFC5-F0D348277999');
+        $statusUrl = config('services.intech.status_url');
+        $apiKey = config('services.intech.key');
 
         $tx = Transaction::where('external_transaction_id', $externalId)->first();
 

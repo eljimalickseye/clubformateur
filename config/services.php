@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'livekit' => [
+        'url' => env('LIVEKIT_URL'),
+        'key' => env('LIVEKIT_API_KEY'),
+        'secret' => env('LIVEKIT_API_SECRET'),
+    ],
+
+    'intech' => [
+        'key' => env('INTECH_API_KEY'),
+        'pay_url' => env('INTECH_API_PAY_URL', 'https://api.intech.sn/api-services/operation'),
+        'status_url' => env('INTECH_API_STATUS_URL', 'https://api.intech.sn/api-services/get-transaction-status'),
+        'wave_code' => env('WAVE_SERVICE_CODE', 'WAVE_SN_API_CASH_OUT'),
+        'om_code' => env('OM_SERVICE_CODE', 'ORANGE_SN_API_CASH_OUT'),
+    ],
+
 ];
