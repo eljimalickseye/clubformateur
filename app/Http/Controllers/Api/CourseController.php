@@ -226,13 +226,13 @@ class CourseController extends Controller
         $this->ownedCourse($request, $id);
         $request->validate([
             'title' => 'sometimes|string|max:255',
-            'replayUrl' => 'sometimes|nullable|url|max:2048',
+            'replayUrl' => 'required|url|max:2048',
         ]);
         $replay = CourseReplay::create([
             'course_id' => $id,
             'replay_uid' => $request->input('id') ?: ('replay_' . time()),
             'title' => $request->input('title', 'Replay session live'),
-            'replay_url' => $request->input('replayUrl', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'),
+            'replay_url' => $request->input('replayUrl'),
             'duration' => $request->input('duration', '1:30:00'),
             'recorded_at' => now(),
         ]);

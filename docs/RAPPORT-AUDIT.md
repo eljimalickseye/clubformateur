@@ -66,7 +66,7 @@ Bilan : 6 failles critiques, 8 elevees, 7 moyennes, 4 faibles.
 ## 4. Failles moyennes
 
 - M1. Validation d'entree quasi absente : seul `register` valide. `CourseController`, `ChatController`, `HomeworkController`, etc. utilisent `$request->input()` avec valeurs par defaut, sans type ni taille. Risque de donnees corrompues et de stockage de contenu arbitraire (`file_url`, `attachment_url`, `replay_url` acceptent n'importe quelle URL, y compris `javascript:` rendu cote client).
-- M2. Mot de passe minimum de 6 caracteres (`register`). Recommandation : 10 minimum, liste de mots de passe courants.
+- M2. Mot de passe minimum de 6 caracteres (`register`), porte a 8 par la correction. Recommandation : 10 et liste de mots de passe courants.
 - M3. Comptes de demonstration avec mots de passe faibles (`password123`, `admin123`) crees automatiquement par `docker/entrypoint.sh` (`db:seed`) quand la base est vide, y compris en production (`APP_ENV=production`). Un `super_admin` connu est cree sur le VPS.
 - M4. Telephone par defaut fictif `+221 77 000 00 00` ecrit en base pour tout inscrit : donnee fausse presentee comme reelle.
 - M5. `docker-compose.yml` : phpMyAdmin publie sur le port 8096 avec identifiants preconfigures, ouvert sur Internet. Redis sans mot de passe. Les services ecoutent en HTTP clair (pas de TLS, `APP_URL=http://...`).
@@ -138,14 +138,38 @@ Limites iOS : les notifications push exigent iOS 16.4 ou plus et une installatio
 ### Desinstallation
 Android : appui long sur l'icone puis "Desinstaller". iPhone : appui long sur l'icone puis "Supprimer l'app".
 
-## 10. Plan de remediation par priorite
+## 10. Corrections appliquees (branche audit/securite-donnees)
 
-| Priorite | Action | Etat |
+Chaque correction est un commit separe, accompagne de tests de non-regression (33 tests, 95 assertions, executes sous PHP 8.3 via Docker, tous verts).
+
+| Faille | Correction | Commit |
 |---|---|---|
-| Immediate (hors code) | Rotation LiveKit, Intech, APP_KEY, mots de passe MySQL ; fermer le port 8096 | A faire par l'equipe |
-| 1 | C5 : retirer les secrets du code et de git | Commits de la branche |
-| 2 | C2, C3 : inscription, profil, connexion | Commits de la branche |
-| 3 | C1, E1-E3 : middleware d'authentification et de role | Commits de la branche |
-| 4 | C6 : retraits | Commits de la branche |
-| 5 | C4, E7, E8, M1-M7 | A planifier |
-| 6 | Tests de non-regression (F4) | A planifier |
+| C5 | Secrets retires du code et de `.env.example` ; `.env.docker` sorti de git (gabarit fourni) ; cles lues via `config/services.php` | fix(secrets) |
+| C2, C3 | Mot de passe verifie, comptes de demonstration implicites supprimes, role non modifiable par le client, identite issue du jeton | fix(auth) |
+| C1, E3, E8 | Middleware `auth.token` et `role`, groupe `/admin` reserve, limitation a 10 requetes/minute sur register, login, google | feat(auth) |
+| C6 | Retraits authentifies, sous verrou, `FAILED` avec restitution du solde, plus de faux `SUCCESS`, solde initial a 0 | fix(paiement) |
+| E5 | Ecriture des formations reservee au proprietaire, creation implicite supprimee | fix(formations) |
+| E1, E2, E5, E6 | Isolation des inscriptions, messages, devoirs ; prix et statut d'inscription fixes par le serveur ; notes bornees | fix(donnees) |
+| E7 | `canPublish` accorde au seul animateur ; salle generee et verifiee cote serveur | fix(live) |
+| M3, M5, M6, F1 | Compose sans mots de passe en dur, phpMyAdmin local, en-tetes nginx, pas de seed en production, `/health` sans message d'erreur | chore(infra) |
+| C4 | Verification du jeton Google aupres de Google | fix(auth) |
+
+Changements de contrat a repercuter dans le client (application mobile ou web) :
+1. Toutes les requetes hors catalogue public doivent envoyer `Authorization: Bearer <token>`.
+2. `POST /auth/google` recoit `idToken` au lieu de `email`. `GOOGLE_CLIENT_ID` doit etre defini sur le serveur.
+3. `POST /enrollments` ne prend plus prix ni statut : une formation payante cree une inscription `pending` tant qu'un paiement n'est pas confirme. Le flux de paiement des inscriptions n'existe pas dans ce depot et reste a construire.
+4. Les champs d'identite (`userId`, `studentId`, `senderId`, `teacherId`...) envoyes dans le corps sont ignores.
+5. Mot de passe minimum : 8 caracteres.
+6. Les livraisons de donnees de demonstration ne sont plus creees en production : charger les categories et documents legaux par un seeder dedie si necessaire.
+
+## 11. Reste a faire
+
+| Priorite | Action |
+|---|---|
+| Immediate, hors code | Rotation de la cle et du secret LiveKit, de la cle Intech, de `APP_KEY`, des mots de passe MySQL (les anciennes valeurs sont dans l'historique git) ; sauvegarder `.env.docker` du VPS avant tout `git pull` (le fichier n'est plus suivi) ; supprimer les comptes de demonstration (`admin123`, `password123`) de la base du VPS |
+| Haute | Stocker les jetons d'API haches (E4) et leur donner une expiration ; HTTPS sur le VPS ; mot de passe Redis |
+| Haute | Confirmation de paiement des inscriptions (webhook Intech) avant passage a `active` ; controle d'acces aux videos de lecons payantes |
+| Moyenne | Route de suppression et d'export de compte, politique de conservation, journal d'audit des actions d'administration |
+| Moyenne | Reecriture de l'historique git (ou depot neuf) si le depot a ete partage ; l'historique contient les anciens secrets |
+| Basse | Utilisateur non root dans le conteneur, images epinglees, analyse des dependances (`composer audit`) en CI |
+| Front-end | Corrections responsive (section 8) et PWA (section 9) dans le depot de l'interface |
