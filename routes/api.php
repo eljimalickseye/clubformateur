@@ -43,17 +43,29 @@ $registerRoutes = function () {
 
     // ─── 1. AUTHENTIFICATION & PROFILS ────────────────────────────────────
     Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login']);
-        Route::post('/google', [AuthController::class, 'googleLogin']);
-        Route::get('/me', [AuthController::class, 'me']);
-        Route::put('/profile', [AuthController::class, 'updateProfile']);
-        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::middleware('throttle:10,1')->group(function () {
+            Route::post('/register', [AuthController::class, 'register']);
+            Route::post('/login', [AuthController::class, 'login']);
+            Route::post('/google', [AuthController::class, 'googleLogin']);
+        });
+        Route::middleware('auth.token')->group(function () {
+            Route::get('/me', [AuthController::class, 'me']);
+            Route::put('/profile', [AuthController::class, 'updateProfile']);
+            Route::post('/logout', [AuthController::class, 'logout']);
+        });
     });
 
-    // ─── 2. FORMATIONS, VIDÉOS DE PRÉSENTATION, LEÇONS & REPLAYS ─────────
+    // ─── Routes publiques en lecture (catalogue, annuaire, verification) ──
     Route::get('/courses', [CourseController::class, 'index']);
     Route::get('/courses/{id}', [CourseController::class, 'show']);
+    Route::get('/trainers', [TrainerController::class, 'index']);
+    Route::get('/trainers/{id}', [TrainerController::class, 'show']);
+    Route::get('/certificates/{code}/verify', [AdminController::class, 'verifyCertificate']);
+
+    // ─── Routes authentifiees ─────────────────────────────────────────────
+    Route::middleware('auth.token')->group(function () {
+
+    // ─── 2. FORMATIONS, VIDÉOS DE PRÉSENTATION, LEÇONS & REPLAYS ─────────
     Route::get('/teachers/{teacherId}/courses', [CourseController::class, 'teacherCourses']);
     Route::post('/courses', [CourseController::class, 'store']);
     Route::put('/courses/{id}', [CourseController::class, 'update']);
@@ -111,11 +123,9 @@ $registerRoutes = function () {
     Route::post('/study-groups/{id}/messages', [StudyGroupController::class, 'sendMessage']);
 
     // ─── 9. ANNUAIRE DES FORMATEURS ──────────────────────────────────────
-    Route::get('/trainers', [TrainerController::class, 'index']);
-    Route::get('/trainers/{id}', [TrainerController::class, 'show']);
 
     // ─── 10. ADMINISTRATION, STATISTIQUES, DOCUMENTS LÉGAUX & CERTIFICATS ─
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('role:admin,super_admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::get('/users', [AdminController::class, 'users']);
         Route::patch('/users/{uid}/role', [AdminController::class, 'updateUserRole']);
@@ -123,7 +133,7 @@ $registerRoutes = function () {
     });
     Route::get('/legal-documents', [AdminController::class, 'legalDocuments']);
     Route::post('/legal-documents/{id}/accept', [AdminController::class, 'acceptLegalDocument']);
-    Route::get('/certificates/{code}/verify', [AdminController::class, 'verifyCertificate']);
+    });
 };
 
 Route::prefix('v1')->group($registerRoutes);
