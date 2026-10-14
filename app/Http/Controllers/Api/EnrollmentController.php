@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Support\CourseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -86,6 +87,7 @@ class EnrollmentController extends Controller
 
         if (!$existing) {
             Course::where('course_uid', $course->course_uid)->increment('students_count');
+            CourseCache::flush();
         }
 
         return response()->json([

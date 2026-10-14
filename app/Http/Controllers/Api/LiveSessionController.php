@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseReplay;
 use App\Models\LiveSession;
 use App\Models\User;
+use App\Support\CourseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -211,6 +212,7 @@ class LiveSessionController extends Controller
                 'duration' => $replayDuration ?? '',
                 'recorded_at' => now(),
             ]);
+            CourseCache::flush();
         }
 
         return response()->json([

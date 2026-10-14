@@ -8,6 +8,7 @@ use App\Models\CourseLesson;
 use App\Models\CourseReplay;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Support\CourseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -16,48 +17,53 @@ class CourseController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Course::with(['lessons', 'replays']);
+        $category = $request->filled('category') && $request->input('category') !== 'Toutes les catégories'
+            ? (string) $request->input('category')
+            : null;
+        $search = $request->filled('search') ? (string) $request->input('search') : null;
 
-        if ($request->filled('category') && $request->input('category') !== 'Toutes les catégories') {
-            $query->where('category', $request->input('category'));
-        }
+        // Catalogue public : identique pour tous les visiteurs, donc partageable
+        // en cache. Seules les formations publiees sont exposees, sans video payante.
+        $courses = CourseCache::remember('index:' . md5(json_encode([$category, $search])), function () use ($category, $search) {
+            $query = Course::with(['lessons', 'replays'])->where('is_published', true);
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('teacher_name', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
-            });
-        }
+            if ($category) {
+                $query->where('category', $category);
+            }
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('teacher_name', 'like', "%{$search}%")
+                      ->orWhere('category', 'like', "%{$search}%");
+                });
+            }
 
-        if ($request->boolean('published_only', false)) {
-            $query->where('is_published', true);
-        }
+            return $query->orderByDesc('created_at')->get()
+                ->map(fn (Course $c) => $this->formatCourse($c, true))
+                ->all();
+        });
 
-        $courses = $query->orderByDesc('created_at')->get();
-
-        return response()->json([
-            'success' => true,
-            'courses' => $courses->map(fn (Course $c) => $this->formatCourse($c)),
-        ]);
+        return $this->publiclyCached($request, ['success' => true, 'courses' => $courses]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $course = Course::with(['lessons', 'replays'])
-            ->where('course_uid', $id)
-            ->orWhere('id', $id)
-            ->first();
+        $course = CourseCache::remember('show:' . $id, function () use ($id) {
+            $course = Course::with(['lessons', 'replays'])
+                ->where('is_published', true)
+                ->where(function ($q) use ($id) {
+                    $q->where('course_uid', $id)->orWhere('id', $id);
+                })
+                ->first();
+
+            return $course ? $this->formatCourse($course, true) : null;
+        });
 
         if (!$course) {
             return response()->json(['success' => false, 'message' => 'Formation introuvable'], 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'course' => $this->formatCourse($course),
-        ]);
+        return $this->publiclyCached($request, ['success' => true, 'course' => $course]);
     }
 
     public function teacherCourses(string $teacherId): JsonResponse
@@ -110,6 +116,8 @@ class CourseController extends Controller
             ]
         );
 
+        CourseCache::flush();
+
         return response()->json([
             'success' => true,
             'id' => $course->course_uid,
@@ -134,6 +142,8 @@ class CourseController extends Controller
             'is_published' => $request->has('isPublished') ? (bool) $request->input('isPublished') : null,
         ], fn ($v) => !is_null($v)));
 
+        CourseCache::flush();
+
         return response()->json([
             'success' => true,
             'course' => $this->formatCourse($course->fresh(['lessons', 'replays'])),
@@ -146,6 +156,7 @@ class CourseController extends Controller
         $course->is_published = !$course->is_published;
         $course->status = $course->is_published ? 'Publiée' : 'Brouillon';
         $course->save();
+        CourseCache::flush();
 
         return response()->json([
             'success' => true,
@@ -161,6 +172,7 @@ class CourseController extends Controller
         CourseLesson::where('course_id', $course->course_uid)->delete();
         CourseReplay::where('course_id', $course->course_uid)->delete();
         $course->delete();
+        CourseCache::flush();
 
         return response()->json([
             'success' => true,
@@ -171,9 +183,9 @@ class CourseController extends Controller
     public function lessons(Request $request, string $id): JsonResponse
     {
         $hasAccess = $this->hasFullAccess($request->user(), $id);
-        $lessons = CourseLesson::where('course_id', $id)
+        $lessons = CourseCache::remember('lessons:' . $id, fn () => CourseLesson::where('course_id', $id)
             ->orderBy('sort_order')
-            ->get();
+            ->get());
 
         return response()->json([
             'success' => true,
@@ -186,7 +198,7 @@ class CourseController extends Controller
                 'isFreePreview' => $l->is_free_preview,
                 'order' => $l->sort_order,
             ]),
-        ]);
+        ])->header('Cache-Control', 'private, no-cache');
     }
 
     public function addLesson(Request $request, string $id): JsonResponse
@@ -210,6 +222,7 @@ class CourseController extends Controller
         ]);
 
         Course::where('course_uid', $id)->increment('lessons_count');
+        CourseCache::flush();
 
         return response()->json([
             'success' => true,
@@ -239,6 +252,7 @@ class CourseController extends Controller
             'duration' => $request->input('duration', '1:30:00'),
             'recorded_at' => now(),
         ]);
+        CourseCache::flush();
 
         return response()->json([
             'success' => true,
@@ -271,6 +285,23 @@ class CourseController extends Controller
             ->exists();
     }
 
+    /**
+     * Reponse publique avec validation conditionnelle : le navigateur ou le
+     * service worker de la PWA revalide avec If-None-Match et recoit un 304
+     * sans corps tant que le catalogue n'a pas change.
+     */
+    private function publiclyCached(Request $request, array $payload): JsonResponse
+    {
+        $response = response()->json($payload);
+        $response->setEtag(md5($response->getContent()));
+        $response->setPublic();
+        $response->setMaxAge(60);
+        $response->headers->addCacheControlDirective('stale-while-revalidate', '300');
+        $response->isNotModified($request);
+
+        return $response;
+    }
+
     private function canManageCourses(User $user): bool
     {
         return in_array($user->role, ['teacher', 'admin', 'super_admin'], true);
@@ -290,7 +321,7 @@ class CourseController extends Controller
         return $course;
     }
 
-    private function formatCourse(Course $course): array
+    private function formatCourse(Course $course, bool $public = false): array
     {
         return [
             'id' => $course->course_uid,
@@ -313,14 +344,14 @@ class CourseController extends Controller
                 'id' => $l->lesson_uid ?: (string) $l->id,
                 'title' => $l->title,
                 'duration' => $l->duration,
-                'videoUrl' => $l->video_url,
+                'videoUrl' => (!$public || $l->is_free_preview) ? $l->video_url : null,
                 'isFreePreview' => $l->is_free_preview,
                 'order' => $l->sort_order,
             ])->values()->all(),
             'replays' => $course->replays->map(fn (CourseReplay $r) => [
                 'id' => $r->replay_uid ?: (string) $r->id,
                 'title' => $r->title,
-                'replayUrl' => $r->replay_url,
+                'replayUrl' => $public ? null : $r->replay_url,
                 'duration' => $r->duration,
                 'date' => ($r->recorded_at ?? $r->created_at)?->toIso8601String(),
             ])->values()->all(),
