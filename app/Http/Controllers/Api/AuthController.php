@@ -16,8 +16,8 @@ class AuthController extends Controller
         $validated = $request->validate([
             'displayName' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role' => 'nullable|string|in:student,teacher,corrector,admin,super_admin',
+            'password' => 'required|string|min:8|max:128',
+            'role' => 'nullable|string|in:student,teacher',
             'phoneNumber' => 'nullable|string|max:30',
             'specialite' => 'nullable|string|max:255',
             'bio' => 'nullable|string',
@@ -32,12 +32,12 @@ class AuthController extends Controller
             'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'] ?? 'student',
-            'phone' => $validated['phoneNumber'] ?? '+221 77 000 00 00',
+            'phone' => $validated['phoneNumber'] ?? null,
             'specialite' => $validated['specialite'] ?? null,
             'bio' => $validated['bio'] ?? null,
             'is_verified' => true,
             'onboarding_step' => 3,
-            'balance_fcfa' => ($validated['role'] ?? 'student') === 'teacher' ? 420000 : 0,
+            'balance_fcfa' => 0,
             'api_token' => $token,
         ]);
 
@@ -50,25 +50,14 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        $email = strtolower(trim((string) $request->input('email', '')));
-        $password = (string) $request->input('password', '');
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-        $user = User::where('email', $email)->first();
+        $user = User::where('email', strtolower(trim($validated['email'])))->first();
 
-        if (!$user) {
-            // Auto-provision demo accounts if requested
-            if (str_contains($email, 'cheikh') || str_contains($email, 'formateur')) {
-                $user = User::where('role', 'teacher')->first();
-            } elseif (str_contains($email, 'moussa') || str_contains($email, 'apprenant')) {
-                $user = User::where('role', 'student')->first();
-            } elseif (str_contains($email, 'fatou') || str_contains($email, 'correct')) {
-                $user = User::where('role', 'corrector')->first();
-            } elseif (str_contains($email, 'admin')) {
-                $user = User::where('role', 'super_admin')->first();
-            }
-        }
-
-        if (!$user) {
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Identifiants invalides.',
@@ -94,7 +83,6 @@ class AuthController extends Controller
             'displayName' => 'nullable|string',
             'photoUrl' => 'nullable|string',
             'uid' => 'nullable|string',
-            'role' => 'nullable|string|in:student,teacher,corrector,admin,super_admin',
         ]);
 
         $email = strtolower(trim($validated['email']));
@@ -103,12 +91,12 @@ class AuthController extends Controller
         if (!$user) {
             $token = Str::random(80);
             $user = User::create([
-                'uid' => $validated['uid'] ?? ('user_' . Str::lower(Str::random(12))),
+                'uid' => 'user_' . Str::lower(Str::random(12)),
                 'name' => $validated['displayName'] ?? explode('@', $email)[0],
                 'email' => $email,
                 'password' => Hash::make(Str::random(32)),
-                'role' => $validated['role'] ?? 'student',
-                'phone' => '+221 77 000 00 00',
+                'role' => 'student',
+                'phone' => null,
                 'photo_url' => $validated['photoUrl'] ?? null,
                 'is_verified' => true,
                 'onboarding_step' => 3,
@@ -147,38 +135,36 @@ class AuthController extends Controller
 
     public function updateProfile(Request $request): JsonResponse
     {
-        $uid = $request->input('uid');
-        $user = $uid ? User::where('uid', $uid)->first() : $this->resolveUser($request);
-
+        $user = $this->resolveUser($request);
         if (!$user) {
-            $user = User::first();
+            return response()->json(['success' => false, 'message' => 'Non authentifié'], 401);
         }
 
-        if ($user) {
-            if ($request->filled('displayName')) {
-                $user->name = $request->input('displayName');
+        $validated = $request->validate([
+            'displayName' => 'sometimes|string|max:255',
+            'phoneNumber' => 'sometimes|nullable|string|max:30',
+            'specialite' => 'sometimes|nullable|string|max:255',
+            'bio' => 'sometimes|nullable|string|max:5000',
+            'photoUrl' => 'sometimes|nullable|url|max:2048',
+        ]);
+
+        $map = [
+            'displayName' => 'name',
+            'phoneNumber' => 'phone',
+            'specialite' => 'specialite',
+            'bio' => 'bio',
+            'photoUrl' => 'photo_url',
+        ];
+        foreach ($map as $input => $column) {
+            if (array_key_exists($input, $validated)) {
+                $user->{$column} = $validated[$input];
             }
-            if ($request->filled('phoneNumber')) {
-                $user->phone = $request->input('phoneNumber');
-            }
-            if ($request->filled('specialite')) {
-                $user->specialite = $request->input('specialite');
-            }
-            if ($request->filled('bio')) {
-                $user->bio = $request->input('bio');
-            }
-            if ($request->filled('photoUrl')) {
-                $user->photo_url = $request->input('photoUrl');
-            }
-            if ($request->filled('role')) {
-                $user->role = $request->input('role');
-            }
-            $user->save();
         }
+        $user->save();
 
         return response()->json([
             'success' => true,
-            'user' => $user ? $this->formatUser($user) : null,
+            'user' => $this->formatUser($user),
         ]);
     }
 
@@ -196,13 +182,8 @@ class AuthController extends Controller
     private function resolveUser(Request $request): ?User
     {
         $bearer = $request->bearerToken();
-        if ($bearer) {
-            return User::where('api_token', $bearer)->first();
-        }
-        if ($request->filled('uid')) {
-            return User::where('uid', $request->input('uid'))->first();
-        }
-        return null;
+
+        return $bearer ? User::where('api_token', $bearer)->first() : null;
     }
 
     private function formatUser(User $user): array
