@@ -140,7 +140,7 @@ Android : appui long sur l'icone puis "Desinstaller". iPhone : appui long sur l'
 
 ## 10. Corrections appliquees (branche audit/securite-donnees)
 
-Chaque correction est un commit separe, accompagne de tests de non-regression (33 tests, 95 assertions, executes sous PHP 8.3 via Docker, tous verts).
+Chaque correction est un commit separe, accompagne de tests de non-regression (43 tests, 134 assertions, executes sous PHP 8.3 via Docker, tous verts).
 
 | Faille | Correction | Commit |
 |---|---|---|
@@ -153,6 +153,10 @@ Chaque correction est un commit separe, accompagne de tests de non-regression (3
 | E7 | `canPublish` accorde au seul animateur ; salle generee et verifiee cote serveur | fix(live) |
 | M3, M5, M6, F1 | Compose sans mots de passe en dur, phpMyAdmin local, en-tetes nginx, pas de seed en production, `/health` sans message d'erreur | chore(infra) |
 | C4 | Verification du jeton Google aupres de Google | fix(auth) |
+| E4 | Jetons haches (SHA-256), expiration a 30 jours, nouveau jeton a chaque connexion, revocation a la deconnexion, migration des jetons existants | fix(auth) |
+| Contenu payant | Videos de lecons masquees sauf apercu, formation gratuite, inscription active, proprietaire ou admin | fix(formations) |
+| Section 6 | Export des donnees du compte et effacement par anonymisation ; mot de passe Redis | feat(donnees) |
+| Dependances | `composer audit` : aucune vulnerabilite connue | verification |
 
 Changements de contrat a repercuter dans le client (application mobile ou web) :
 1. Toutes les requetes hors catalogue public doivent envoyer `Authorization: Bearer <token>`.
@@ -164,12 +168,12 @@ Changements de contrat a repercuter dans le client (application mobile ou web) :
 
 ## 11. Reste a faire
 
-| Priorite | Action |
-|---|---|
-| Immediate, hors code | Rotation de la cle et du secret LiveKit, de la cle Intech, de `APP_KEY`, des mots de passe MySQL (les anciennes valeurs sont dans l'historique git) ; sauvegarder `.env.docker` du VPS avant tout `git pull` (le fichier n'est plus suivi) ; supprimer les comptes de demonstration (`admin123`, `password123`) de la base du VPS |
-| Haute | Stocker les jetons d'API haches (E4) et leur donner une expiration ; HTTPS sur le VPS ; mot de passe Redis |
-| Haute | Confirmation de paiement des inscriptions (webhook Intech) avant passage a `active` ; controle d'acces aux videos de lecons payantes |
-| Moyenne | Route de suppression et d'export de compte, politique de conservation, journal d'audit des actions d'administration |
-| Moyenne | Reecriture de l'historique git (ou depot neuf) si le depot a ete partage ; l'historique contient les anciens secrets |
-| Basse | Utilisateur non root dans le conteneur, images epinglees, analyse des dependances (`composer audit`) en CI |
-| Front-end | Corrections responsive (section 8) et PWA (section 9) dans le depot de l'interface |
+| Priorite | Action | Pourquoi ce n'est pas fait ici |
+|---|---|---|
+| Immediate, hors code | Rotation de la cle et du secret LiveKit, de la cle Intech, de `APP_KEY`, des mots de passe MySQL et Redis ; sauvegarder `.env.docker` du VPS avant tout `git pull` ; supprimer les comptes de demonstration (`admin123`, `password123`) de la base du VPS ; definir `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `REDIS_PASSWORD`, `GOOGLE_CLIENT_ID` | Les secrets se changent chez les fournisseurs et sur le serveur, pas dans le code |
+| Haute | HTTPS sur le VPS (reverse proxy avec certificat) | Configuration du serveur, hors depot |
+| Haute | Confirmation de paiement des inscriptions (webhook Intech) avant passage a `active` | Le flux de paiement des inscriptions n'existe pas dans ce depot : decision produit et contrat Intech necessaires |
+| Moyenne | Politique de conservation et journal d'audit des actions d'administration | Decision juridique et metier |
+| Moyenne | Reecriture de l'historique git si le depot a ete partage | Destructif (force push) : a decider par le proprietaire du depot apres rotation des secrets |
+| Basse | Utilisateur non root dans le conteneur | Nginx et supervisord exigent root pour le port et les processus : demande une refonte de l'image |
+| Front-end | Corrections responsive (section 8) et PWA (section 9) | Le depot de l'interface n'est pas fourni |
