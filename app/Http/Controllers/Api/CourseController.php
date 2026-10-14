@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\CourseReplay;
+use App\Models\Enrollment;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -167,8 +168,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function lessons(string $id): JsonResponse
+    public function lessons(Request $request, string $id): JsonResponse
     {
+        $hasAccess = $this->hasFullAccess($request->user(), $id);
         $lessons = CourseLesson::where('course_id', $id)
             ->orderBy('sort_order')
             ->get();
@@ -179,7 +181,8 @@ class CourseController extends Controller
                 'id' => $l->lesson_uid ?: (string) $l->id,
                 'title' => $l->title,
                 'duration' => $l->duration,
-                'videoUrl' => $l->video_url,
+                // Les videos payantes ne sont revelees qu'aux inscrits, au proprietaire et aux admins.
+                'videoUrl' => ($hasAccess || $l->is_free_preview) ? $l->video_url : null,
                 'isFreePreview' => $l->is_free_preview,
                 'order' => $l->sort_order,
             ]),
@@ -247,6 +250,25 @@ class CourseController extends Controller
                 'date' => $replay->recorded_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    private function hasFullAccess(User $user, string $courseId): bool
+    {
+        $course = Course::where('course_uid', $courseId)->first();
+        if (!$course) {
+            return false;
+        }
+        if (in_array($user->role, ['admin', 'super_admin'], true) || $course->teacher_id === $user->uid) {
+            return true;
+        }
+        if ((int) $course->price_cfa === 0) {
+            return true;
+        }
+
+        return Enrollment::where('student_id', $user->uid)
+            ->where('course_id', $course->course_uid)
+            ->where('status', 'active')
+            ->exists();
     }
 
     private function canManageCourses(User $user): bool
