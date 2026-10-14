@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -79,13 +80,34 @@ class AuthController extends Controller
     public function googleLogin(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|email',
-            'displayName' => 'nullable|string',
-            'photoUrl' => 'nullable|string',
-            'uid' => 'nullable|string',
+            'idToken' => 'required|string|max:4096',
         ]);
 
-        $email = strtolower(trim($validated['email']));
+        // L'identite vient du jeton signe par Google, jamais du corps de la requete.
+        $clientId = config('services.google.client_id');
+        $google = null;
+        if ($clientId) {
+            try {
+                $response = Http::timeout(6)->get('https://oauth2.googleapis.com/tokeninfo', [
+                    'id_token' => $validated['idToken'],
+                ]);
+                $google = $response->successful() ? $response->json() : null;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        $valid = $google
+            && ($google['aud'] ?? null) === $clientId
+            && filter_var($google['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            && !empty($google['email']);
+        if (!$valid) {
+            return response()->json(['success' => false, 'message' => 'Jeton Google invalide.'], 401);
+        }
+
+        $validated['displayName'] = $google['name'] ?? null;
+        $validated['photoUrl'] = $google['picture'] ?? null;
+        $email = strtolower(trim($google['email']));
         $user = User::where('email', $email)->first();
 
         if (!$user) {
