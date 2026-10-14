@@ -61,25 +61,47 @@ class AdminController extends Controller
 
     public function updateUserRole(Request $request, string $uid): JsonResponse
     {
-        $user = User::where('uid', $uid)->orWhere('id', $uid)->firstOrFail();
-        if ($request->filled('role')) {
-            $user->role = $request->input('role');
+        $validated = $request->validate([
+            'role' => 'sometimes|string|in:student,teacher,corrector,admin,super_admin',
+            'isVerified' => 'sometimes|boolean',
+        ]);
+
+        // Seul un super_admin peut attribuer ou retirer un role administrateur.
+        $touchesAdminRole = isset($validated['role']) && in_array($validated['role'], ['admin', 'super_admin'], true);
+        if ($touchesAdminRole && $request->user()->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
         }
-        if ($request->has('isVerified')) {
-            $user->is_verified = (bool) $request->input('isVerified');
+
+        $user = User::where('uid', $uid)->firstOrFail();
+        if (isset($validated['role'])) {
+            $user->role = $validated['role'];
+        }
+        if (array_key_exists('isVerified', $validated)) {
+            $user->is_verified = (bool) $validated['isVerified'];
         }
         $user->save();
 
-        return response()->json(['success' => true, 'user' => $user]);
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'uid' => $user->uid,
+                'displayName' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'isVerified' => $user->is_verified,
+            ],
+        ]);
     }
 
     public function assignCorrector(Request $request): JsonResponse
     {
-        $correctorId = $request->input('correctorId');
-        $teacherId = $request->input('teacherId');
+        $validated = $request->validate([
+            'correctorId' => 'required|string|max:100',
+            'teacherId' => 'required|string|max:100|exists:users,uid',
+        ]);
 
-        $corrector = User::where('uid', $correctorId)->orWhere('id', $correctorId)->firstOrFail();
-        $corrector->linked_teacher_id = $teacherId;
+        $corrector = User::where('uid', $validated['correctorId'])->where('role', 'corrector')->firstOrFail();
+        $corrector->linked_teacher_id = $validated['teacherId'];
         $corrector->save();
 
         return response()->json([
@@ -99,7 +121,7 @@ class AdminController extends Controller
     public function acceptLegalDocument(Request $request, string $id): JsonResponse
     {
         $doc = LegalDocument::where('doc_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $userId = $request->input('userId', 'user');
+        $userId = $request->user()->uid;
         $accepted = $doc->accepted_by ?? [];
         if (!in_array($userId, $accepted, true)) {
             $accepted[] = $userId;

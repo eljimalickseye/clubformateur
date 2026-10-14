@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Homework;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class HomeworkController extends Controller
 {
@@ -25,8 +27,13 @@ class HomeworkController extends Controller
         ]);
     }
 
-    public function studentHomeworks(string $studentId): JsonResponse
+    public function studentHomeworks(Request $request, string $studentId): JsonResponse
     {
+        $user = $request->user();
+        if ($user->uid !== $studentId && !in_array($user->role, ['teacher', 'corrector', 'admin', 'super_admin'], true)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
         $homeworks = Homework::where('student_id', $studentId)->orderByDesc('created_at')->get();
         return response()->json([
             'success' => true,
@@ -36,19 +43,31 @@ class HomeworkController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'courseId' => 'required|string|max:100',
+            'lessonId' => 'sometimes|nullable|string|max:100',
+            'correctorId' => 'sometimes|nullable|string|max:100',
+            'title' => 'required|string|max:255',
+            'instructions' => 'sometimes|nullable|string|max:5000',
+            'submissionText' => 'sometimes|nullable|string|max:20000',
+            'attachmentUrl' => 'sometimes|nullable|url|max:2048',
+        ]);
+        $user = $request->user();
+        $course = Course::where('course_uid', $validated['courseId'])->firstOrFail();
+
         $hw = Homework::create([
-            'homework_uid' => $request->input('id') ?: ('hw_' . time()),
-            'course_id' => $request->input('courseId', 'react'),
-            'course_title' => $request->input('courseTitle', 'Formation'),
-            'lesson_id' => $request->input('lessonId'),
-            'student_id' => $request->input('studentId', 'demo_student_moussa'),
-            'student_name' => $request->input('studentName', 'Moussa Ndiaye'),
-            'teacher_id' => $request->input('teacherId', 'demo_teacher_cheikh'),
-            'corrector_id' => $request->input('correctorId', 'demo_corrector_fatou'),
-            'title' => $request->input('title', 'Devoir pratique'),
-            'instructions' => $request->input('instructions'),
-            'submission_text' => $request->input('submissionText'),
-            'attachment_url' => $request->input('attachmentUrl'),
+            'homework_uid' => 'hw_' . time() . '_' . Str::lower(Str::random(6)),
+            'course_id' => $validated['courseId'],
+            'course_title' => $course->title,
+            'lesson_id' => $validated['lessonId'] ?? null,
+            'student_id' => $user->uid,
+            'student_name' => $user->name,
+            'teacher_id' => $course->teacher_id,
+            'corrector_id' => $validated['correctorId'] ?? null,
+            'title' => $validated['title'],
+            'instructions' => $validated['instructions'] ?? null,
+            'submission_text' => $validated['submissionText'] ?? null,
+            'attachment_url' => $validated['attachmentUrl'] ?? null,
             'status' => 'pending',
         ]);
 
@@ -60,10 +79,20 @@ class HomeworkController extends Controller
 
     public function grade(Request $request, string $id): JsonResponse
     {
+        $user = $request->user();
+        if (!in_array($user->role, ['teacher', 'corrector', 'admin', 'super_admin'], true)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $validated = $request->validate([
+            'grade' => 'required|numeric|min:0|max:20',
+            'feedback' => 'sometimes|nullable|string|max:5000',
+        ]);
+
         $hw = Homework::where('homework_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $hw->grade = (float) $request->input('grade', 16.0);
-        $hw->feedback = $request->input('feedback', 'Excellent travail !');
-        $hw->corrector_id = $request->input('correctorId', $hw->corrector_id);
+        $hw->grade = (float) $validated['grade'];
+        $hw->feedback = $validated['feedback'] ?? null;
+        $hw->corrector_id = $user->uid;
         $hw->status = 'corrected';
         $hw->save();
 

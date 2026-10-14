@@ -89,11 +89,11 @@ $registerRoutes = function () {
     Route::post('/livekit/token', [LiveSessionController::class, 'generateLiveKitToken']);
 
     // ─── 4. INSCRIPTIONS & PROGRESSION DES APPRENANTS ────────────────────
-    Route::get('/enrollments', [EnrollmentController::class, 'index']);
+    Route::get('/enrollments', [EnrollmentController::class, 'index'])->middleware('role:admin,super_admin');
     Route::get('/students/{studentId}/enrollments', [EnrollmentController::class, 'studentEnrollments']);
     Route::get('/students/{studentId}/enrollments/{courseId}/check', [EnrollmentController::class, 'checkEnrollment']);
     Route::post('/enrollments', [EnrollmentController::class, 'store']);
-    Route::patch('/enrollments/{id}/status', [EnrollmentController::class, 'updateStatus']);
+    Route::patch('/enrollments/{id}/status', [EnrollmentController::class, 'updateStatus'])->middleware('role:admin,super_admin');
     Route::put('/students/{studentId}/progress/{courseId}', [EnrollmentController::class, 'updateProgress']);
 
     // ─── 5. MESSAGERIE TEMPS RÉEL & NOTES VOCALES ────────────────────────
@@ -110,7 +110,7 @@ $registerRoutes = function () {
     Route::post('/payments/status', [PaymentController::class, 'checkStatus']);
 
     // ─── 7. DEVOIRS & ESPACE CORRECTEUR ──────────────────────────────────
-    Route::get('/homeworks', [HomeworkController::class, 'index']);
+    Route::get('/homeworks', [HomeworkController::class, 'index'])->middleware('role:teacher,corrector,admin,super_admin');
     Route::get('/students/{studentId}/homeworks', [HomeworkController::class, 'studentHomeworks']);
     Route::post('/homeworks', [HomeworkController::class, 'store']);
     Route::patch('/homeworks/{id}/grade', [HomeworkController::class, 'grade']);
