@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\CourseReplay;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -65,9 +66,6 @@ class CourseController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        if ($courses->isEmpty()) {
-            $courses = Course::with(['lessons', 'replays'])->orderByDesc('created_at')->get();
-        }
 
         return response()->json([
             'success' => true,
@@ -77,25 +75,35 @@ class CourseController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $courseUid = $request->input('id') ?: ('course_' . time() . '_' . Str::lower(Str::random(4)));
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'price' => 'sometimes|integer|min:0|max:10000000',
+            'presentationVideoUrl' => 'sometimes|nullable|url|max:2048',
+        ]);
+        $auth = $request->user();
+        if (!$this->canManageCourses($auth)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $courseUid = 'course_' . time() . '_' . Str::lower(Str::random(6));
         $isPublished = (bool) $request->input('isPublished', true);
 
-        $course = Course::updateOrCreate(
-            ['course_uid' => $courseUid],
+        $course = Course::create(
             [
-                'title' => $request->input('title', 'Nouvelle Formation'),
+                'course_uid' => $courseUid,
+                'title' => $request->input('title'),
                 'category' => $request->input('category', 'Informatique'),
                 'description' => $request->input('description', ''),
                 'price_cfa' => (int) $request->input('price', 25000),
                 'level' => $request->input('level', 'Tous niveaux'),
                 'duration' => $request->input('duration', '12h 30m'),
                 'lessons_count' => (int) $request->input('lessonsCount', 0),
-                'rating' => (float) $request->input('rating', 4.9),
-                'students_count' => (int) $request->input('studentsCount', 0),
+                'rating' => 0,
+                'students_count' => 0,
                 'image_url' => $request->input('image', 'assets/images/student-library.jpeg'),
                 'presentation_video_url' => $request->input('presentationVideoUrl'),
-                'teacher_id' => $request->input('teacherId', 'demo_teacher_cheikh'),
-                'teacher_name' => $request->input('trainerName', 'Cheikh Abdoulaye Diop'),
+                'teacher_id' => $auth->uid,
+                'teacher_name' => $auth->name,
                 'status' => $isPublished ? 'Publiée' : 'Brouillon',
                 'is_published' => $isPublished,
             ]
@@ -110,10 +118,7 @@ class CourseController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $course = Course::where('course_uid', $id)->orWhere('id', $id)->first();
-        if (!$course) {
-            return $this->store($request);
-        }
+        $course = $this->ownedCourse($request, $id);
 
         $course->update(array_filter([
             'title' => $request->input('title'),
@@ -134,9 +139,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function togglePublish(string $id): JsonResponse
+    public function togglePublish(Request $request, string $id): JsonResponse
     {
-        $course = Course::where('course_uid', $id)->orWhere('id', $id)->firstOrFail();
+        $course = $this->ownedCourse($request, $id);
         $course->is_published = !$course->is_published;
         $course->status = $course->is_published ? 'Publiée' : 'Brouillon';
         $course->save();
@@ -149,14 +154,12 @@ class CourseController extends Controller
         ]);
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $course = Course::where('course_uid', $id)->orWhere('id', $id)->first();
-        if ($course) {
-            CourseLesson::where('course_id', $course->course_uid)->delete();
-            CourseReplay::where('course_id', $course->course_uid)->delete();
-            $course->delete();
-        }
+        $course = $this->ownedCourse($request, $id);
+        CourseLesson::where('course_id', $course->course_uid)->delete();
+        CourseReplay::where('course_id', $course->course_uid)->delete();
+        $course->delete();
 
         return response()->json([
             'success' => true,
@@ -185,6 +188,11 @@ class CourseController extends Controller
 
     public function addLesson(Request $request, string $id): JsonResponse
     {
+        $this->ownedCourse($request, $id);
+        $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'videoUrl' => 'sometimes|nullable|url|max:2048',
+        ]);
         $lessonUid = $request->input('id') ?: ('lesson_' . time() . '_' . Str::lower(Str::random(4)));
         $order = CourseLesson::where('course_id', $id)->count() + 1;
 
@@ -215,6 +223,11 @@ class CourseController extends Controller
 
     public function addReplay(Request $request, string $id): JsonResponse
     {
+        $this->ownedCourse($request, $id);
+        $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'replayUrl' => 'sometimes|nullable|url|max:2048',
+        ]);
         $replay = CourseReplay::create([
             'course_id' => $id,
             'replay_uid' => $request->input('id') ?: ('replay_' . time()),
@@ -234,6 +247,25 @@ class CourseController extends Controller
                 'date' => $replay->recorded_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    private function canManageCourses(User $user): bool
+    {
+        return in_array($user->role, ['teacher', 'admin', 'super_admin'], true);
+    }
+
+    private function ownedCourse(Request $request, string $id): Course
+    {
+        $course = Course::where('course_uid', $id)->orWhere('id', $id)->firstOrFail();
+        $user = $request->user();
+
+        $isOwner = $this->canManageCourses($user) && $course->teacher_id === $user->uid;
+        $isAdmin = in_array($user->role, ['admin', 'super_admin'], true);
+        if (!$isOwner && !$isAdmin) {
+            abort(403, 'Accès refusé');
+        }
+
+        return $course;
     }
 
     private function formatCourse(Course $course): array
