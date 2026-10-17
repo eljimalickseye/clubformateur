@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Club des Formateurs - La plateforme qui connecte les apprenants aux formateurs et experts pour développer les compétences de demain.">
+  <meta name="keywords" content="formations en ligne, cours sénégal, club des formateurs, formation professionnelle, cours certifiants">
+  <meta name="author" content="Club des Formateurs">
+
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="theme-color" content="#062C32">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ClubFormateurs">
+  <meta name="application-name" content="Club des Formateurs">
+  <meta name="msapplication-TileColor" content="#062C32">
+  <meta name="msapplication-TileImage" content="icons/Icon-192.png">
+
+  <!-- Apple Touch Icons & Favicons -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/Icon-512.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+
+  <!-- Web Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Nettoyage et purge absolue des Service Workers résiduels (Correctif écran blanc iOS WebKit) -->
+  <script>
+    (function() {
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            if (regs && regs.length > 0) {
+              var promises = [];
+              for (var i = 0; i < regs.length; i++) {
+                promises.push(regs[i].unregister());
+              }
+              Promise.all(promises).then(function() {
+                if (window.caches) {
+                  caches.keys().then(function(keys) {
+                    var delPromises = [];
+                    for (var j = 0; j < keys.length; j++) {
+                      delPromises.push(caches.delete(keys[j]));
+                    }
+                    Promise.all(delPromises).then(function() {
+                      if (!sessionStorage.getItem('cf_sw_purged_v2')) {
+                        sessionStorage.setItem('cf_sw_purged_v2', '1');
+                        window.location.reload();
+                      }
+                    });
+                  });
+                }
+              });
+            }
+          }).catch(function() {});
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Fonts Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <title>Club des Formateurs - Apprendre, Enseigner, Évoluer</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      background-color: #062C32 !important;
+      background: #062C32 !important;
+      overflow: hidden;
+      overscroll-behavior-y: contain;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    flutter-view, flt-glass-pane, flt-scene-host, flt-canvas-container, canvas {
+      background-color: #062C32 !important;
+      background: #062C32 !important;
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+    }
+
+    #loading-splash {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: linear-gradient(135deg, #0B2D2A 0%, #06281F 100%);
+      color: white;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      z-index: 999999;
+      transition: opacity 0.35s ease-out;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .splash-logo-box {
+      width: 76px;
+      height: 76px;
+      margin-bottom: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(53, 211, 163, 0.4);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .splash-logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 18px;
+    }
+
+    .splash-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0 0 6px 0;
+      color: #ffffff;
+    }
+
+    .splash-title span {
+      color: #35D3A3;
+    }
+
+    .splash-subtitle {
+      font-size: 13px;
+      color: #D9ECE7;
+      opacity: 0.9;
+      font-weight: 500;
+      margin: 0 0 28px 0;
+      letter-spacing: 0.5px;
+    }
+
+    .splash-spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #12A57A;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #splash-error-box {
+      display: none;
+      margin-top: 20px;
+      max-width: 340px;
+      background: rgba(20, 10, 10, 0.6);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    #splash-error-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FCA5A5;
+      margin: 0 0 6px 0;
+    }
+
+    #splash-error-message {
+      font-size: 11px;
+      color: #E2E8F0;
+      opacity: 0.85;
+      margin: 0 0 14px 0;
+      word-break: break-word;
+      font-family: monospace;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .splash-btn {
+      background: #12A57A;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .splash-btn:hover {
+      background: #0E8562;
+    }
+    .splash-btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Splash Screen Club des Formateurs -->
+  <div id="loading-splash">
+    <div class="splash-logo-box">
+      <img src="icons/Icon-192.png?v=3" alt="Club des Formateurs" />
+    </div>
+    <h1 class="splash-title">Club des <span>Formateurs</span></h1>
+    <p id="splash-status-text" class="splash-subtitle">Apprendre • Enseigner • Évoluer</p>
+    <div class="splash-spinner"></div>
+
+    <div id="splash-reload-hint" style="display: none; margin-top: 24px;">
+      <p style="font-size: 12px; color: #D9ECE7; margin: 0 0 10px 0; opacity: 0.9;">Chargement sur mobile en cours...</p>
+      <button onclick="window.forceAppUpdate()" class="splash-btn">Actualiser l'application</button>
+    </div>
+
+    <div id="splash-error-box">
+      <div id="splash-error-title">⚠️ Difficulté d'affichage détectée</div>
+      <div id="splash-error-message">Initialisation interrompue par le navigateur.</div>
+      <div style="display: flex; justify-content: center;">
+        <button onclick="window.forceAppUpdate()" class="splash-btn">Recharger sans cache</button>
+        <button onclick="window.copyDiagnostic()" class="splash-btn splash-btn-secondary">Copier l'erreur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA Install Prompt & Diagnostic Utilities -->
+  <script>
+    window.deferredPwaPrompt = null;
+    window.isPwaInstallable = false;
+    window._lastStartupError = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+      window.isPwaInstallable = true;
+      window.dispatchEvent(new CustomEvent('pwa-installable-ready'));
+    });
+
+    window.addEventListener('appinstalled', function() {
+      window.deferredPwaPrompt = null;
+      window.isPwaInstallable = false;
+      window.dispatchEvent(new CustomEvent('pwa-installed'));
+    });
+
+    window.promptPwaInstallation = async function() {
+      if (window.deferredPwaPrompt) {
+        window.deferredPwaPrompt.prompt();
+        var choice = await window.deferredPwaPrompt.userChoice;
+        window.deferredPwaPrompt = null;
+        return choice.outcome === 'accepted';
+      }
+      return false;
+    };
+
+    // Suppression sécurisée du splash uniquement lorsque le premier frame est confirmé
+    var splashRemoved = false;
+    function removeSplash() {
+      if (splashRemoved) return;
+      splashRemoved = true;
+      var splash = document.getElementById('loading-splash');
+      if (splash && splash.parentNode) {
+        splash.style.opacity = '0';
+        setTimeout(function() {
+          if (splash && splash.parentNode) splash.remove();
+        }, 360);
+      }
+    }
+    window.removeSplash = removeSplash;
+
+    // Écouter les événements Flutter de premier frame peint
+    window.addEventListener('flutter-first-frame', removeSplash);
+    window.addEventListener('first-frame', removeSplash);
+
+    // Messages dynamiques sur réseau mobile
+    setTimeout(function() {
+      if (!splashRemoved) {
+        var status = document.getElementById('splash-status-text');
+        if (status) status.textContent = 'Connexion à la plateforme...';
+      }
+    }, 5000);
+
+    setTimeout(function() {
+      if (!splashRemoved) {
+        var status = document.getElementById('splash-status-text');
+        if (status) status.textContent = 'Préparation de l\'affichage graphique...';
+      }
+    }, 10000);
+
+    // Proposer l'actualisation après 14s si la connexion mobile 3G/4G est lente
+    setTimeout(function() {
+      var hint = document.getElementById('splash-reload-hint');
+      if (hint && !splashRemoved) hint.style.display = 'block';
+    }, 14000);
+
+    // Après 35s sans premier frame, afficher le panneau d'aide au lieu d'un écran vide
+    setTimeout(function() {
+      if (!splashRemoved) {
+        window.showStartupError(new Error('Délai de connexion dépassé sur votre réseau mobile.'));
+      }
+    }, 35000);
+
+    // Affichage des erreurs au lieu d'un écran blanc silencieux
+    window.showStartupError = function(error) {
+      if (splashRemoved) return;
+      window._lastStartupError = error;
+      var msg = error ? (error.message || String(error)) : 'Erreur inconnue';
+      var errorBox = document.getElementById('splash-error-box');
+      var spinner = document.querySelector('.splash-spinner');
+      var reloadHint = document.getElementById('splash-reload-hint');
+      if (spinner) spinner.style.display = 'none';
+      if (reloadHint) reloadHint.style.display = 'none';
+      if (errorBox) {
+        var msgElem = document.getElementById('splash-error-message');
+        if (msgElem) msgElem.textContent = msg;
+        errorBox.style.display = 'block';
+      }
+    };
+
+    window.copyDiagnostic = function() {
+      var diag = 'Club des Formateurs Diagnostic:\n' +
+        'UA: ' + navigator.userAgent + '\n' +
+        'Erreur: ' + (window._lastStartupError ? (window._lastStartupError.stack || window._lastStartupError.message || String(window._lastStartupError)) : 'Aucune trace') + '\n' +
+        'Date: ' + new Date().toISOString();
+      navigator.clipboard.writeText(diag).then(function() {
+        alert('Diagnostic copié dans le presse-papiers.');
+      }).catch(function() {
+        alert(diag);
+      });
+    };
+
+    // Helper pour forcer la purge complète et recharger l'application
+    window.forceAppUpdate = async function() {
+      try {
+        if ('serviceWorker' in navigator) {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          for (var i = 0; i < regs.length; i++) { await regs[i].unregister(); }
+        }
+        if (window.caches) {
+          var keys = await caches.keys();
+          for (var j = 0; j < keys.length; j++) { await caches.delete(keys[j]); }
+        }
+      } catch (e) {
+        console.error('Erreur vidage cache:', e);
+      }
+      sessionStorage.clear();
+      window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
+    };
+
+    // Atténuation des assertions internes Firestore Web et capture des erreurs fatales avant frame
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event ? (event.reason ? String(event.reason) : String(event)) : '';
+      if (reason.includes('FIRESTORE') || reason.includes('INTERNAL ASSERTION FAILED')) {
+        event.preventDefault();
+        return;
+      }
+      if (!splashRemoved) {
+        console.warn('Unhandled rejection before first frame:', reason);
+        // Si c'est une erreur de rendu ou de compilation Wasm, afficher la boîte d'erreur
+        if (reason.includes('WebAssembly') || reason.includes('WebGL') || reason.includes('CanvasKit') || reason.includes('out of memory')) {
+          window.showStartupError(event.reason || new Error(reason));
+        }
+      }
+    });
+
+    window.addEventListener('error', function(event) {
+      var msg = event ? (event.message ? String(event.message) : String(event)) : '';
+      if (msg.includes('FIRESTORE') || msg.includes('INTERNAL ASSERTION FAILED')) {
+        event.preventDefault();
+        return;
+      }
+      if (!splashRemoved) {
+        console.warn('Script error before first frame:', msg);
+        if (msg.includes('WebAssembly') || msg.includes('WebGL') || msg.includes('CanvasKit') || msg.includes('out of memory')) {
+          window.showStartupError(event.error || new Error(msg));
+        }
+      }
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

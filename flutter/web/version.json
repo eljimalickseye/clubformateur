@@ -1,0 +1,13 @@
+{
+  "version": "1.0.24",
+  "buildNumber": 124,
+  "title": "Mise à jour disponible ! 🎉",
+  "releaseNotes": "Fluidité : défilement plus léger sur iPhone, images redimensionnées, carrousels qui ne bloquent plus le scroll.",
+  "highlights": [
+    "Scroll plus fluide sur iPhone et Safari",
+    "Les carrousels ne défilent plus tout seuls sur mobile",
+    "Images décodées à la taille d'affichage pour alléger le GPU"
+  ],
+  "releasedAt": "2026-10-10T00:40:00Z",
+  "isMandatory": false
+}
