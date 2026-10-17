@@ -128,21 +128,6 @@ class AuthService {
   }) async {
     final cleanEmail = email.trim().toLowerCase();
 
-    // 0. Accès direct Administrateur
-    if (cleanEmail == 'admin@clubdesformateurs.com' || cleanEmail == 'admin@cf.sn' || cleanEmail == 'admin@gmail.com') {
-      final adminUser = UserModel.demoAdmin;
-      await _persistLocally(adminUser, 'admin_master_token');
-      currentUserNotifier.value = adminUser;
-      return adminUser;
-    }
-
-    // 0.1 Accès direct Correcteur Démo
-    if (cleanEmail == 'correcteur@clubdesformateurs.com' || cleanEmail == 'correcteur@cf.sn' || cleanEmail == 'aminata.fall@club-des-formateurs.sn') {
-      final correctorUser = UserModel.demoCorrector;
-      await _persistLocally(correctorUser, 'corrector_master_token');
-      currentUserNotifier.value = correctorUser;
-      return correctorUser;
-    }
 
     // 1. Tenter l'authentification réelle via Laravel API (sur le VPS)
     try {
