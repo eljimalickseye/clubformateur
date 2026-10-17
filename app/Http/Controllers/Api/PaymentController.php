@@ -7,29 +7,43 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    public function wallet(string $teacherId): JsonResponse
+    public function wallet(Request $request, string $teacherId): JsonResponse
     {
-        $user = User::where('uid', $teacherId)->first();
+        $auth = $request->user();
+        if ($auth->uid !== $teacherId && !$this->isAdmin($auth)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $user = User::where('uid', $teacherId)->firstOrFail();
         $transactions = Transaction::where('user_id', $teacherId)
             ->orderByDesc('created_at')
             ->get();
 
         return response()->json([
             'success' => true,
-            'balanceFcfa' => $user ? $user->balance_fcfa : 420000,
+            'balanceFcfa' => $user->balance_fcfa,
             'transactions' => $transactions->map(fn (Transaction $t) => $this->formatTransaction($t)),
         ]);
     }
 
     public function transactions(Request $request): JsonResponse
     {
+        $auth = $request->user();
         $query = Transaction::orderByDesc('created_at');
-        if ($request->filled('userId')) {
-            $query->where('user_id', $request->input('userId'));
+
+        if ($this->isAdmin($auth)) {
+            if ($request->filled('userId')) {
+                $query->where('user_id', $request->input('userId'));
+            }
+        } else {
+            $query->where('user_id', $auth->uid);
         }
 
         return response()->json([
@@ -40,31 +54,66 @@ class PaymentController extends Controller
 
     public function withdraw(Request $request): JsonResponse
     {
-        $userId = $request->input('userId', 'demo_teacher_cheikh');
-        $amount = (int) $request->input('amount', 25000);
-        $rawPhone = preg_replace('/\D+/', '', (string) $request->input('phone', '771234567'));
+        $validated = $request->validate([
+            'amount' => 'required|integer|min:1000|max:1000000',
+            'phone' => ['required', 'string', 'regex:/^(\+?221|00221)?\s?7[0-9\s]{8,12}$/'],
+            'method' => 'required|string|in:wave,orange,orange_money,om',
+        ]);
+
+        $auth = $request->user();
+        if (!in_array($auth->role, ['teacher', 'admin', 'super_admin'], true)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $amount = (int) $validated['amount'];
+        $rawPhone = preg_replace('/\D+/', '', $validated['phone']);
         if (str_starts_with($rawPhone, '00221')) {
             $rawPhone = substr($rawPhone, 5);
-        } elseif (!str_starts_with($rawPhone, '221') && strlen($rawPhone) === 9) {
+        }
+        if (!str_starts_with($rawPhone, '221')) {
             $rawPhone = '221' . $rawPhone;
         }
 
-        $method = strtolower((string) $request->input('method', 'wave'));
-        $serviceCode = str_contains($method, 'orange') || str_contains($method, 'om')
-            ? env('OM_SERVICE_CODE', 'ORANGE_SN_API_CASH_OUT')
-            : env('WAVE_SERVICE_CODE', 'WAVE_SN_API_CASH_OUT');
-        $providerName = $serviceCode === 'ORANGE_SN_API_CASH_OUT' ? 'Orange Money Sénégal' : 'Wave Sénégal';
-        $externalId = 'ANOUR_CASH_OUT_' . time() . '_' . rand(100, 999);
+        $isOrange = $validated['method'] !== 'wave';
+        $serviceCode = $isOrange
+            ? config('services.intech.om_code')
+            : config('services.intech.wave_code');
+        $providerName = $isOrange ? 'Orange Money Sénégal' : 'Wave Sénégal';
+        $externalId = 'ANOUR_CASH_OUT_' . time() . '_' . Str::upper(Str::random(8));
 
-        $apiKey = env('INTECH_API_KEY', '9D65FC1C-BA2D-4102-BFC5-F0D348277999');
-        $payUrl = env('INTECH_API_PAY_URL', 'https://api.intech.sn/api-services/operation');
+        // Debit et creation de la transaction sous verrou : pas de retrait
+        // au-dela du solde, pas de double debit concurrent.
+        $tx = DB::transaction(function () use ($auth, $amount, $rawPhone, $serviceCode, $providerName, $externalId) {
+            $user = User::whereKey($auth->getKey())->lockForUpdate()->first();
+            if ($user->balance_fcfa < $amount) {
+                return null;
+            }
+            $user->balance_fcfa -= $amount;
+            $user->save();
 
-        $status = 'SUCCESS';
+            return Transaction::create([
+                'user_id' => $user->uid,
+                'external_transaction_id' => $externalId,
+                'type' => 'withdrawal',
+                'provider_code' => $serviceCode,
+                'provider_name' => $providerName,
+                'phone' => $rawPhone,
+                'amount_fcfa' => $amount,
+                'status' => 'PENDING',
+            ]);
+        });
+
+        if (!$tx) {
+            return response()->json(['success' => false, 'message' => 'Solde insuffisant.'], 422);
+        }
+
+        $apiKey = config('services.intech.key');
+        $status = 'FAILED';
         try {
             $response = Http::timeout(6)->withHeaders([
                 'Secretkey' => $apiKey,
                 'API-KEY' => $apiKey,
-            ])->post($payUrl, [
+            ])->post(config('services.intech.pay_url'), [
                 'phone' => $rawPhone,
                 'amount' => $amount,
                 'codeService' => $serviceCode,
@@ -72,72 +121,71 @@ class PaymentController extends Controller
                 'apiKey' => $apiKey,
                 'data' => [
                     'platform' => 'Club des Formateurs',
-                    'userId' => $userId,
+                    'userId' => $auth->uid,
                 ],
             ]);
 
-            if ($response->successful()) {
-                $body = $response->json();
-                if (isset($body['status']) && in_array(strtoupper((string) $body['status']), ['PENDING', 'SUCCESS'], true)) {
-                    $status = strtoupper((string) $body['status']);
-                }
+            $remote = strtoupper((string) $response->json('status'));
+            if ($response->successful() && in_array($remote, ['PENDING', 'SUCCESS'], true)) {
+                $status = $remote;
+            } else {
+                Log::warning('Intech: retrait refuse', ['external_id' => $externalId, 'http' => $response->status()]);
             }
         } catch (\Throwable $e) {
-            // Recorded locally in database as SUCCESS/PENDING when sandbox or CORS offline
-            $status = 'SUCCESS';
+            Log::error('Intech: appel de retrait en echec', ['external_id' => $externalId, 'error' => $e->getMessage()]);
         }
 
-        $tx = Transaction::create([
-            'user_id' => $userId,
-            'external_transaction_id' => $externalId,
-            'type' => 'withdrawal',
-            'provider_code' => $serviceCode,
-            'provider_name' => $providerName,
-            'phone' => $rawPhone,
-            'amount_fcfa' => $amount,
-            'status' => $status,
-        ]);
-
-        $user = User::where('uid', $userId)->first();
-        if ($user && $user->balance_fcfa >= $amount) {
-            $user->balance_fcfa -= $amount;
-            $user->save();
+        if ($status === 'FAILED') {
+            // L'argent n'est pas parti : restitution du solde.
+            DB::transaction(function () use ($auth, $amount) {
+                User::whereKey($auth->getKey())->lockForUpdate()->first()->increment('balance_fcfa', $amount);
+            });
         }
+
+        $tx->status = $status;
+        $tx->save();
 
         return response()->json([
-            'success' => true,
+            'success' => $status !== 'FAILED',
             'transaction' => $this->formatTransaction($tx),
-            'newBalanceFcfa' => $user ? $user->balance_fcfa : null,
-        ], 201);
+            'newBalanceFcfa' => (int) $auth->fresh()->balance_fcfa,
+        ], $status === 'FAILED' ? 502 : 201);
     }
 
     public function checkStatus(Request $request): JsonResponse
     {
-        $externalId = $request->input('externalTransactionId');
-        $statusUrl = env('INTECH_API_STATUS_URL', 'https://api.intech.sn/api-services/get-transaction-status');
-        $apiKey = env('INTECH_API_KEY', '9D65FC1C-BA2D-4102-BFC5-F0D348277999');
+        $validated = $request->validate(['externalTransactionId' => 'required|string|max:100']);
+        $auth = $request->user();
 
-        $tx = Transaction::where('external_transaction_id', $externalId)->first();
+        $query = Transaction::where('external_transaction_id', $validated['externalTransactionId']);
+        if (!$this->isAdmin($auth)) {
+            $query->where('user_id', $auth->uid);
+        }
+        $tx = $query->firstOrFail();
 
         try {
-            $response = Http::timeout(5)->post($statusUrl, [
-                'externalTransactionId' => $externalId,
-                'apiKey' => $apiKey,
+            $response = Http::timeout(5)->post(config('services.intech.status_url'), [
+                'externalTransactionId' => $tx->external_transaction_id,
+                'apiKey' => config('services.intech.key'),
             ]);
-            if ($response->successful() && $tx) {
-                $remoteStatus = strtoupper((string) ($response->json('status') ?? $tx->status));
-                $tx->status = $remoteStatus;
+            if ($response->successful() && $response->json('status')) {
+                $tx->status = strtoupper((string) $response->json('status'));
                 $tx->save();
             }
         } catch (\Throwable $e) {
-            // Keep existing status
+            Log::warning('Intech: statut indisponible', ['external_id' => $tx->external_transaction_id, 'error' => $e->getMessage()]);
         }
 
         return response()->json([
             'success' => true,
-            'status' => $tx ? $tx->status : 'SUCCESS',
-            'transaction' => $tx ? $this->formatTransaction($tx) : null,
+            'status' => $tx->status,
+            'transaction' => $this->formatTransaction($tx),
         ]);
+    }
+
+    private function isAdmin(User $user): bool
+    {
+        return in_array($user->role, ['admin', 'super_admin'], true);
     }
 
     private function formatTransaction(Transaction $t): array

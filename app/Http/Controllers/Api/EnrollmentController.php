@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Support\CourseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,8 +20,12 @@ class EnrollmentController extends Controller
         ]);
     }
 
-    public function studentEnrollments(string $studentId): JsonResponse
+    public function studentEnrollments(Request $request, string $studentId): JsonResponse
     {
+        if (!$this->isSelfOrAdmin($request, $studentId)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
         $enrollments = Enrollment::where('student_id', $studentId)
             ->orderByDesc('created_at')
             ->get();
@@ -31,8 +36,12 @@ class EnrollmentController extends Controller
         ]);
     }
 
-    public function checkEnrollment(string $studentId, string $courseId): JsonResponse
+    public function checkEnrollment(Request $request, string $studentId, string $courseId): JsonResponse
     {
+        if (!$this->isSelfOrAdmin($request, $studentId)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
         $enrolled = Enrollment::where('student_id', $studentId)
             ->where('course_id', $courseId)
             ->exists();
@@ -45,40 +54,52 @@ class EnrollmentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $studentId = $request->input('studentId', 'demo_student_moussa');
-        $courseId = $request->input('courseId', 'react');
-        $enrollmentUid = $studentId . '_' . $courseId;
+        $validated = $request->validate([
+            'courseId' => 'required|string|max:100',
+            'paymentMethod' => 'sometimes|string|max:50',
+        ]);
 
-        $enrollment = Enrollment::updateOrCreate(
-            ['enrollment_uid' => $enrollmentUid],
-            [
-                'student_id' => $studentId,
-                'student_name' => $request->input('studentName', 'Moussa Ndiaye'),
-                'course_id' => $courseId,
-                'course_title' => $request->input('courseTitle', 'Formation'),
-                'course_image' => $request->input('courseImage', 'assets/images/student-library.jpeg'),
-                'trainer_name' => $request->input('trainerName', 'Cheikh Abdoulaye Diop'),
-                'category' => $request->input('category', 'Informatique'),
-                'price_cfa' => (int) $request->input('price', 25000),
-                'payment_method' => $request->input('paymentMethod', 'Wave'),
-                'status' => $request->input('status', 'active'),
-                'progress_percent' => 0,
-                'completed_lessons' => [],
-            ]
-        );
+        $auth = $request->user();
+        $course = Course::where('course_uid', $validated['courseId'])->firstOrFail();
+        $studentId = $auth->uid;
+        $enrollmentUid = $studentId . '_' . $course->course_uid;
 
-        Course::where('course_uid', $courseId)->increment('students_count');
+        // Le prix et le statut viennent du serveur : un apprenant ne peut pas
+        // s'inscrire gratuitement a une formation payante.
+        $price = (int) $course->price_cfa;
+        $existing = Enrollment::where('enrollment_uid', $enrollmentUid)->first();
+
+        $enrollment = $existing ?? Enrollment::create([
+            'enrollment_uid' => $enrollmentUid,
+            'student_id' => $studentId,
+            'student_name' => $auth->name,
+            'course_id' => $course->course_uid,
+            'course_title' => $course->title,
+            'course_image' => $course->image_url,
+            'trainer_name' => $course->teacher_name,
+            'category' => $course->category,
+            'price_cfa' => $price,
+            'payment_method' => $validated['paymentMethod'] ?? 'Wave',
+            'status' => $price === 0 ? 'active' : 'pending',
+            'progress_percent' => 0,
+            'completed_lessons' => [],
+        ]);
+
+        if (!$existing) {
+            Course::where('course_uid', $course->course_uid)->increment('students_count');
+            CourseCache::flush();
+        }
 
         return response()->json([
             'success' => true,
             'enrollment' => $this->formatEnrollment($enrollment),
-        ], 201);
+        ], $existing ? 200 : 201);
     }
 
     public function updateStatus(Request $request, string $id): JsonResponse
     {
         $enrollment = Enrollment::where('enrollment_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $enrollment->status = $request->input('status', 'active');
+        $enrollment->status = $request->validate(['status' => 'required|string|in:pending,active,cancelled,completed'])['status'];
         $enrollment->save();
 
         return response()->json([
@@ -89,24 +110,39 @@ class EnrollmentController extends Controller
 
     public function updateProgress(Request $request, string $studentId, string $courseId): JsonResponse
     {
+        if ($request->user()->uid !== $studentId) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $validated = $request->validate([
+            'progressPercent' => 'sometimes|integer|min:0|max:100',
+            'completedLessons' => 'sometimes|array',
+            'completedLessons.*' => 'string|max:100',
+        ]);
+
         $enrollment = Enrollment::where('student_id', $studentId)
             ->where('course_id', $courseId)
-            ->first();
+            ->firstOrFail();
 
-        if ($enrollment) {
-            if ($request->has('progressPercent')) {
-                $enrollment->progress_percent = (int) $request->input('progressPercent');
-            }
-            if ($request->has('completedLessons')) {
-                $enrollment->completed_lessons = (array) $request->input('completedLessons');
-            }
-            $enrollment->save();
+        if (array_key_exists('progressPercent', $validated)) {
+            $enrollment->progress_percent = $validated['progressPercent'];
         }
+        if (array_key_exists('completedLessons', $validated)) {
+            $enrollment->completed_lessons = $validated['completedLessons'];
+        }
+        $enrollment->save();
 
         return response()->json([
             'success' => true,
-            'enrollment' => $enrollment ? $this->formatEnrollment($enrollment) : null,
+            'enrollment' => $this->formatEnrollment($enrollment),
         ]);
+    }
+
+    private function isSelfOrAdmin(Request $request, string $studentId): bool
+    {
+        $user = $request->user();
+
+        return $user->uid === $studentId || in_array($user->role, ['admin', 'super_admin'], true);
     }
 
     private function formatEnrollment(Enrollment $e): array

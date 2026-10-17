@@ -55,7 +55,7 @@ php artisan storage:link --force || true
 php artisan migrate --force || true
 
 USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tr -d '\r\n' || echo "0")
-if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+if [ "${APP_ENV:-production}" != "production" ] && { [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; }; then
     echo "Initialisation des données de démonstration (DatabaseSeeder)..."
     php artisan db:seed --force || true
 fi

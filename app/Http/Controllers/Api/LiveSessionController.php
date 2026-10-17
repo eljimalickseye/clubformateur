@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CourseReplay;
 use App\Models\LiveSession;
+use App\Models\User;
+use App\Support\CourseCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class LiveSessionController extends Controller
 {
@@ -48,41 +51,49 @@ class LiveSessionController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $sessionUid = $request->input('id') ?: ('live_' . time());
-        $courseId = $request->input('courseId', 'general');
-        $roomName = $request->input('roomName') ?: ('club_live_' . $courseId . '_' . time());
-        $teacherId = $request->input('teacherId', 'demo_teacher_cheikh');
-        $teacherName = $request->input('teacherName', 'Cheikh Abdoulaye Diop');
+        $user = $request->user();
+        if (!$this->isStaff($user)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
 
-        $session = LiveSession::updateOrCreate(
-            ['session_uid' => $sessionUid],
-            [
-                'course_id' => $courseId,
-                'course_name' => $request->input('courseName', 'Formation Générale'),
-                'title' => $request->input('title', 'Session Live Interactive'),
-                'teacher_id' => $teacherId,
-                'teacher_name' => $teacherName,
-                'teacher_photo_url' => $request->input('teacherPhotoUrl', ''),
-                'status' => $request->input('status', 'live'),
-                'room_name' => $roomName,
-                'session_type' => $request->input('sessionType', 'teacher_live'),
-                'host_role' => $request->input('hostRole', 'teacher'),
-                'phase' => $request->input('phase', 'interactive'),
-                'participant_count' => 1,
-                'connected_participants' => [$teacherId],
-                'raised_hands' => [],
-                'scheduled_at' => now(),
-                'started_at' => now(),
-            ]
-        );
+        $validated = $request->validate([
+            'courseId' => 'required|string|max:100',
+            'courseName' => 'sometimes|nullable|string|max:255',
+            'title' => 'required|string|max:255',
+            'sessionType' => 'sometimes|string|max:50',
+            'phase' => 'sometimes|string|in:interactive,exercises,presentation',
+        ]);
 
-        $token = $this->createLiveKitJwt($roomName, $teacherId, $teacherName, true);
+        $sessionUid = 'live_' . time() . '_' . Str::lower(Str::random(6));
+        $roomName = 'club_live_' . $validated['courseId'] . '_' . Str::lower(Str::random(8));
+
+        $session = LiveSession::create([
+            'session_uid' => $sessionUid,
+            'course_id' => $validated['courseId'],
+            'course_name' => $validated['courseName'] ?? $validated['title'],
+            'title' => $validated['title'],
+            'teacher_id' => $user->uid,
+            'teacher_name' => $user->name,
+            'teacher_photo_url' => $user->photo_url ?? '',
+            'status' => 'live',
+            'room_name' => $roomName,
+            'session_type' => $validated['sessionType'] ?? 'teacher_live',
+            'host_role' => $user->role,
+            'phase' => $validated['phase'] ?? 'interactive',
+            'participant_count' => 1,
+            'connected_participants' => [$user->uid],
+            'raised_hands' => [],
+            'scheduled_at' => now(),
+            'started_at' => now(),
+        ]);
+
+        $token = $this->createLiveKitJwt($roomName, $user->uid, $user->name, true);
 
         return response()->json([
             'success' => true,
             'session' => $this->formatSession($session),
             'livekit' => [
-                'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
+                'serverUrl' => config('services.livekit.url'),
                 'roomName' => $roomName,
                 'token' => $token,
             ],
@@ -91,8 +102,8 @@ class LiveSessionController extends Controller
 
     public function switchPhase(Request $request, string $id): JsonResponse
     {
-        $session = LiveSession::where('session_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $session->phase = $request->input('phase', 'exercises');
+        $session = $this->hostedSession($request, $id);
+        $session->phase = $request->validate(['phase' => 'required|string|in:interactive,exercises,presentation'])['phase'];
         $session->save();
 
         return response()->json([
@@ -103,25 +114,27 @@ class LiveSessionController extends Controller
 
     public function join(Request $request, string $id): JsonResponse
     {
-        $session = LiveSession::where('session_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $userId = $request->input('userId', 'student_' . time());
-        $userName = $request->input('userName', 'Apprenant');
+        $user = $request->user();
+        $session = LiveSession::where('session_uid', $id)->firstOrFail();
+        if ($session->status !== 'live') {
+            return response()->json(['success' => false, 'message' => 'Session terminée'], 409);
+        }
 
         $participants = $session->connected_participants ?? [];
-        if (!in_array($userId, $participants, true)) {
-            $participants[] = $userId;
+        if (!in_array($user->uid, $participants, true)) {
+            $participants[] = $user->uid;
         }
         $session->connected_participants = $participants;
         $session->participant_count = count($participants);
         $session->save();
 
-        $token = $this->createLiveKitJwt($session->room_name, $userId, $userName, false);
+        $token = $this->createLiveKitJwt($session->room_name, $user->uid, $user->name, $this->canHost($user, $session));
 
         return response()->json([
             'success' => true,
             'session' => $this->formatSession($session),
             'livekit' => [
-                'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
+                'serverUrl' => config('services.livekit.url'),
                 'roomName' => $session->room_name,
                 'token' => $token,
             ],
@@ -130,10 +143,9 @@ class LiveSessionController extends Controller
 
     public function leave(Request $request, string $id): JsonResponse
     {
-        $session = LiveSession::where('session_uid', $id)->orWhere('id', $id)->first();
+        $session = LiveSession::where('session_uid', $id)->first();
         if ($session) {
-            $userId = $request->input('userId');
-            $participants = array_values(array_diff($session->connected_participants ?? [], [$userId]));
+            $participants = array_values(array_diff($session->connected_participants ?? [], [$request->user()->uid]));
             $session->connected_participants = $participants;
             $session->participant_count = max(1, count($participants));
             $session->save();
@@ -144,14 +156,13 @@ class LiveSessionController extends Controller
 
     public function toggleRaiseHand(Request $request, string $id): JsonResponse
     {
-        $session = LiveSession::where('session_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $userId = $request->input('userId', 'student');
-        $userName = $request->input('userName', 'Apprenant');
+        $user = $request->user();
+        $session = LiveSession::where('session_uid', $id)->firstOrFail();
         $hands = $session->raised_hands ?? [];
 
         $exists = false;
         foreach ($hands as $k => $h) {
-            if (($h['uid'] ?? '') === $userId) {
+            if (($h['uid'] ?? '') === $user->uid) {
                 unset($hands[$k]);
                 $exists = true;
             }
@@ -159,8 +170,8 @@ class LiveSessionController extends Controller
 
         if (!$exists) {
             $hands[] = [
-                'uid' => $userId,
-                'displayName' => $userName,
+                'uid' => $user->uid,
+                'displayName' => $user->name,
                 'raisedAt' => now()->toIso8601String(),
             ];
         }
@@ -177,55 +188,84 @@ class LiveSessionController extends Controller
 
     public function end(Request $request, string $id): JsonResponse
     {
-        $session = LiveSession::where('session_uid', $id)->orWhere('id', $id)->first();
-        $replayUrl = $request->input('replayUrl', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
-        $replayDuration = $request->input('replayDuration', '1:30:00');
+        $session = $this->hostedSession($request, $id);
+        $validated = $request->validate([
+            'replayUrl' => 'sometimes|nullable|url|max:2048',
+            'replayDuration' => 'sometimes|nullable|string|max:20',
+        ]);
+        $replayUrl = $validated['replayUrl'] ?? null;
+        $replayDuration = $validated['replayDuration'] ?? null;
 
-        if ($session) {
-            $session->status = 'ended';
-            $session->has_replay = true;
-            $session->replay_url = $replayUrl;
-            $session->replay_duration = $replayDuration;
-            $session->ended_at = now();
-            $session->save();
+        $session->status = 'ended';
+        $session->has_replay = $replayUrl !== null;
+        $session->replay_url = $replayUrl;
+        $session->replay_duration = $replayDuration;
+        $session->ended_at = now();
+        $session->save();
 
+        if ($replayUrl !== null) {
             CourseReplay::create([
                 'course_id' => $session->course_id,
                 'replay_uid' => $session->session_uid,
                 'title' => 'Replay : ' . $session->title,
                 'replay_url' => $replayUrl,
-                'duration' => $replayDuration,
+                'duration' => $replayDuration ?? '',
                 'recorded_at' => now(),
             ]);
+            CourseCache::flush();
         }
 
         return response()->json([
             'success' => true,
-            'session' => $session ? $this->formatSession($session) : null,
+            'session' => $this->formatSession($session),
         ]);
     }
 
     public function generateLiveKitToken(Request $request): JsonResponse
     {
-        $roomName = $request->input('roomName', 'club_live_default');
-        $identity = $request->input('participantIdentity', 'user_' . time());
-        $name = $request->input('participantName', 'Participant');
-        $isTeacher = (bool) $request->input('isTeacher', false);
+        $validated = $request->validate(['roomName' => 'required|string|max:255']);
+        $user = $request->user();
 
-        $token = $this->createLiveKitJwt($roomName, $identity, $name, $isTeacher);
+        $session = LiveSession::where('room_name', $validated['roomName'])->where('status', 'live')->firstOrFail();
+        $token = $this->createLiveKitJwt($session->room_name, $user->uid, $user->name, $this->canHost($user, $session));
 
         return response()->json([
             'success' => true,
-            'serverUrl' => env('LIVEKIT_URL', 'wss://anour-rv83fs3g.livekit.cloud'),
-            'roomName' => $roomName,
+            'serverUrl' => config('services.livekit.url'),
+            'roomName' => $session->room_name,
             'token' => $token,
         ]);
     }
 
+    private function isStaff(User $user): bool
+    {
+        return in_array($user->role, ['teacher', 'admin', 'super_admin'], true);
+    }
+
+    /** Droit de publier audio/video : l'animateur de la session ou un administrateur. */
+    private function canHost(User $user, LiveSession $session): bool
+    {
+        return in_array($user->role, ['admin', 'super_admin'], true)
+            || ($user->role === 'teacher' && $session->teacher_id === $user->uid);
+    }
+
+    private function hostedSession(Request $request, string $id): LiveSession
+    {
+        $session = LiveSession::where('session_uid', $id)->firstOrFail();
+        if (!$this->canHost($request->user(), $session)) {
+            abort(403, 'Accès refusé');
+        }
+
+        return $session;
+    }
+
     private function createLiveKitJwt(string $roomName, string $identity, string $name, bool $isTeacher): string
     {
-        $apiKey = env('LIVEKIT_API_KEY', 'APIsCo9dSx9D6VC');
-        $apiSecret = env('LIVEKIT_API_SECRET', 'uOfP2sDQQjFe3dREQazqQq3fLWkv5JPfMVnikLAoCPAB');
+        $apiKey = config('services.livekit.key');
+        $apiSecret = config('services.livekit.secret');
+        if (!$apiKey || !$apiSecret) {
+            abort(503, 'LiveKit non configuré');
+        }
 
         $header = ['alg' => 'HS256', 'typ' => 'JWT'];
         $now = time();

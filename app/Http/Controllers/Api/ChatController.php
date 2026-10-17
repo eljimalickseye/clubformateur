@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,12 +13,12 @@ class ChatController extends Controller
 {
     public function conversations(Request $request): JsonResponse
     {
+        $user = $request->user();
         $query = Conversation::query();
 
-        if ($request->filled('userId')) {
-            $uid = $request->input('userId');
-            $query->where(function ($q) use ($uid) {
-                $q->where('student_id', $uid)->orWhere('teacher_id', $uid);
+        if (!$this->isAdmin($user)) {
+            $query->where(function ($q) use ($user) {
+                $q->where('student_id', $user->uid)->orWhere('teacher_id', $user->uid);
             });
         }
 
@@ -31,22 +32,34 @@ class ChatController extends Controller
 
     public function createOrGetConversation(Request $request): JsonResponse
     {
-        $studentId = $request->input('studentId', 'demo_student_moussa');
-        $teacherId = $request->input('teacherId', 'demo_teacher_cheikh');
-        $conversationUid = $request->input('id') ?: ($studentId . '_' . $teacherId);
+        $validated = $request->validate([
+            'studentId' => 'required|string|max:100',
+            'teacherId' => 'required|string|max:100',
+            'courseId' => 'sometimes|nullable|string|max:100',
+            'courseTitle' => 'sometimes|nullable|string|max:255',
+        ]);
 
-        $conversation = Conversation::updateOrCreate(
+        $user = $request->user();
+        if (!in_array($user->uid, [$validated['studentId'], $validated['teacherId']], true)) {
+            return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
+        }
+
+        $student = User::where('uid', $validated['studentId'])->firstOrFail();
+        $teacher = User::where('uid', $validated['teacherId'])->firstOrFail();
+        $conversationUid = $student->uid . '_' . $teacher->uid;
+
+        $conversation = Conversation::firstOrCreate(
             ['conversation_uid' => $conversationUid],
             [
-                'student_id' => $studentId,
-                'student_name' => $request->input('studentName', 'Moussa Ndiaye'),
-                'student_photo_url' => $request->input('studentPhotoUrl', ''),
-                'teacher_id' => $teacherId,
-                'teacher_name' => $request->input('teacherName', 'Cheikh Abdoulaye Diop'),
-                'teacher_photo_url' => $request->input('teacherPhotoUrl', ''),
-                'course_id' => $request->input('courseId', 'react'),
-                'course_title' => $request->input('courseTitle', 'Formation'),
-                'last_message' => $request->input('lastMessage', 'Conversation démarrée'),
+                'student_id' => $student->uid,
+                'student_name' => $student->name,
+                'student_photo_url' => $student->photo_url ?? '',
+                'teacher_id' => $teacher->uid,
+                'teacher_name' => $teacher->name,
+                'teacher_photo_url' => $teacher->photo_url ?? '',
+                'course_id' => $validated['courseId'] ?? null,
+                'course_title' => $validated['courseTitle'] ?? null,
+                'last_message' => 'Conversation démarrée',
                 'last_message_at' => now(),
             ]
         );
@@ -57,8 +70,10 @@ class ChatController extends Controller
         ]);
     }
 
-    public function messages(string $conversationId): JsonResponse
+    public function messages(Request $request, string $conversationId): JsonResponse
     {
+        $this->participantConversation($request, $conversationId);
+
         $messages = Message::where('conversation_id', $conversationId)
             ->orderBy('created_at')
             ->get();
@@ -71,20 +86,30 @@ class ChatController extends Controller
 
     public function sendMessage(Request $request, string $conversationId): JsonResponse
     {
+        $this->participantConversation($request, $conversationId);
+        $validated = $request->validate([
+            'content' => 'nullable|string|max:5000',
+            'type' => 'sometimes|string|in:text,audio,file,image',
+            'fileUrl' => 'sometimes|nullable|url|max:2048',
+            'fileName' => 'sometimes|nullable|string|max:255',
+            'audioDuration' => 'sometimes|nullable',
+        ]);
+        $user = $request->user();
+
         $message = Message::create([
             'conversation_id' => $conversationId,
-            'sender_id' => $request->input('senderId', 'user'),
-            'sender_name' => $request->input('senderName', 'Utilisateur'),
-            'sender_role' => $request->input('senderRole', 'student'),
-            'content' => $request->input('content', ''),
-            'message_type' => $request->input('type', 'text'),
-            'file_url' => $request->input('fileUrl'),
-            'file_name' => $request->input('fileName'),
-            'audio_duration' => $request->input('audioDuration'),
+            'sender_id' => $user->uid,
+            'sender_name' => $user->name,
+            'sender_role' => $user->role,
+            'content' => $validated['content'] ?? '',
+            'message_type' => $validated['type'] ?? 'text',
+            'file_url' => $validated['fileUrl'] ?? null,
+            'file_name' => $validated['fileName'] ?? null,
+            'audio_duration' => $validated['audioDuration'] ?? null,
         ]);
 
         Conversation::where('conversation_uid', $conversationId)->update([
-            'last_message' => $message->message_type === 'audio' ? '🎤 Note vocale' : $message->content,
+            'last_message' => $message->message_type === 'audio' ? 'Note vocale' : $message->content,
             'last_message_at' => now(),
         ]);
 
@@ -94,10 +119,29 @@ class ChatController extends Controller
         ], 201);
     }
 
-    public function markAsRead(string $conversationId): JsonResponse
+    public function markAsRead(Request $request, string $conversationId): JsonResponse
     {
+        $this->participantConversation($request, $conversationId);
         Conversation::where('conversation_uid', $conversationId)->update(['unread_count' => 0]);
+
         return response()->json(['success' => true]);
+    }
+
+    private function isAdmin(User $user): bool
+    {
+        return in_array($user->role, ['admin', 'super_admin'], true);
+    }
+
+    private function participantConversation(Request $request, string $conversationId): Conversation
+    {
+        $conversation = Conversation::where('conversation_uid', $conversationId)->firstOrFail();
+        $user = $request->user();
+
+        if (!$this->isAdmin($user) && !in_array($user->uid, [$conversation->student_id, $conversation->teacher_id], true)) {
+            abort(403, 'Accès refusé');
+        }
+
+        return $conversation;
     }
 
     private function formatConversation(Conversation $c): array

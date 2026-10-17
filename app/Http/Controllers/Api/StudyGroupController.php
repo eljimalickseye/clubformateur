@@ -7,6 +7,7 @@ use App\Models\StudyGroup;
 use App\Models\StudyGroupMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class StudyGroupController extends Controller
 {
@@ -21,14 +22,20 @@ class StudyGroupController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $creatorId = $request->input('creatorId', 'demo_student_moussa');
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'sometimes|string|max:100',
+            'description' => 'sometimes|nullable|string|max:2000',
+        ]);
+        $user = $request->user();
+        $creatorId = $user->uid;
         $group = StudyGroup::create([
-            'group_uid' => $request->input('id') ?: ('group_' . time()),
-            'name' => $request->input('name', 'Groupe d\'étude'),
-            'category' => $request->input('category', 'Informatique'),
-            'description' => $request->input('description', ''),
+            'group_uid' => 'group_' . time() . '_' . Str::lower(Str::random(6)),
+            'name' => $validated['name'],
+            'category' => $validated['category'] ?? 'Informatique',
+            'description' => $validated['description'] ?? '',
             'creator_id' => $creatorId,
-            'creator_name' => $request->input('creatorName', 'Moussa Ndiaye'),
+            'creator_name' => $user->name,
             'members_count' => 1,
             'member_ids' => [$creatorId],
         ]);
@@ -42,7 +49,7 @@ class StudyGroupController extends Controller
     public function join(Request $request, string $id): JsonResponse
     {
         $group = StudyGroup::where('group_uid', $id)->orWhere('id', $id)->firstOrFail();
-        $userId = $request->input('userId', 'student');
+        $userId = $request->user()->uid;
         $members = $group->member_ids ?? [];
         if (!in_array($userId, $members, true)) {
             $members[] = $userId;
@@ -57,8 +64,9 @@ class StudyGroupController extends Controller
         ]);
     }
 
-    public function messages(string $id): JsonResponse
+    public function messages(Request $request, string $id): JsonResponse
     {
+        $this->memberGroup($request, $id);
         $msgs = StudyGroupMessage::where('group_id', $id)->orderBy('created_at')->get();
         return response()->json([
             'success' => true,
@@ -78,14 +86,23 @@ class StudyGroupController extends Controller
 
     public function sendMessage(Request $request, string $id): JsonResponse
     {
+        $this->memberGroup($request, $id);
+        $validated = $request->validate([
+            'content' => 'nullable|string|max:5000',
+            'type' => 'sometimes|string|in:text,audio,file,image',
+            'fileUrl' => 'sometimes|nullable|url|max:2048',
+            'audioDuration' => 'sometimes|nullable',
+        ]);
+        $user = $request->user();
+
         $msg = StudyGroupMessage::create([
             'group_id' => $id,
-            'sender_id' => $request->input('senderId', 'student'),
-            'sender_name' => $request->input('senderName', 'Membre'),
-            'content' => $request->input('content', ''),
-            'message_type' => $request->input('type', 'text'),
-            'file_url' => $request->input('fileUrl'),
-            'audio_duration' => $request->input('audioDuration'),
+            'sender_id' => $user->uid,
+            'sender_name' => $user->name,
+            'content' => $validated['content'] ?? '',
+            'message_type' => $validated['type'] ?? 'text',
+            'file_url' => $validated['fileUrl'] ?? null,
+            'audio_duration' => $validated['audioDuration'] ?? null,
         ]);
 
         return response()->json([
@@ -102,6 +119,20 @@ class StudyGroupController extends Controller
                 'createdAt' => $msg->created_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    /** Les messages d'un groupe ne sont visibles et ecrits que par ses membres. */
+    private function memberGroup(Request $request, string $id): StudyGroup
+    {
+        $group = StudyGroup::where('group_uid', $id)->firstOrFail();
+        $user = $request->user();
+
+        if (!in_array($user->uid, $group->member_ids ?? [], true)
+            && !in_array($user->role, ['admin', 'super_admin'], true)) {
+            abort(403, 'Accès refusé');
+        }
+
+        return $group;
     }
 
     private function formatGroup(StudyGroup $g): array
