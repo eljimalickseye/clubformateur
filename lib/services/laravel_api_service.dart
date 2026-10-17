@@ -120,6 +120,25 @@ class LaravelApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> deleteJson(String endpoint, [Map<String, dynamic>? body]) async {
+    if (_isMixedContentBlocked) return null;
+    try {
+      final request = http.Request('DELETE', Uri.parse('$baseUrl$endpoint'));
+      request.headers.addAll(_headers);
+      if (body != null) {
+        request.body = jsonEncode(body);
+      }
+      final streamed = await request.send().timeout(const Duration(seconds: 4));
+      final response = await http.Response.fromStream(streamed);
+      if (response.body.isNotEmpty) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Laravel API DELETE $endpoint offline/fallback: $e');
+    }
+    return null;
+  }
+
   /// Upload d'un fichier binaire (image, vidéo, audio, PDF) vers POST /api/v1/courses/upload-media
   Future<String?> uploadMedia({
     required Uint8List bytes,

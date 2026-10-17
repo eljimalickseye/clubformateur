@@ -488,4 +488,45 @@ class AuthService {
     } catch (_) {}
     currentUserNotifier.value = null;
   }
+
+  /// Droit d'accès et de portabilité des données (RGPD / Loi 2008-12)
+  /// Récupère toutes les données associées à l'utilisateur connecté depuis l'API Laravel (/api/v1/auth/export).
+  Future<Map<String, dynamic>?> exportPersonalData() async {
+    try {
+      final res = await LaravelApiService().get('/auth/export');
+      return res;
+    } catch (e) {
+      debugPrint('AuthService: Erreur lors de l\'export des données personnelles: $e');
+      return null;
+    }
+  }
+
+  /// Droit à l'effacement (RGPD / Loi 2008-12)
+  /// Anonymise le compte via l'API Laravel (/api/v1/auth/account) avec vérification du mot de passe.
+  Future<Map<String, dynamic>> deleteAccount(String password) async {
+    try {
+      final res = await LaravelApiService().deleteJson('/auth/account', {
+        'password': password,
+      });
+
+      if (res != null && res['success'] == true) {
+        await signOut();
+        return {
+          'success': true,
+          'message': res['message']?.toString() ?? 'Compte supprimé avec succès.',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': res?['message']?.toString() ?? 'Échec de la suppression du compte.',
+        };
+      }
+    } catch (e) {
+      debugPrint('AuthService: Erreur lors de la suppression du compte: $e');
+      return {
+        'success': false,
+        'message': 'Une erreur est survenue lors de la suppression du compte: $e',
+      };
+    }
+  }
 }

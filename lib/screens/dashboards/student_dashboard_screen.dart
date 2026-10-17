@@ -1,5 +1,6 @@
 import '../../widgets/marketing_section_header.dart';
 import '../../widgets/legal_documents_widget.dart';
+import '../../widgets/privacy_settings_card.dart';
 import '../../widgets/voice_message_widgets.dart';
 import '../../widgets/app_notification_bell.dart';
 import '../../models/enrollment_model.dart';
@@ -3709,6 +3710,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               },
               child: isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Sauvegarder'),
             ),
+            const PrivacySettingsCard(),
           ],
         ),
       ),

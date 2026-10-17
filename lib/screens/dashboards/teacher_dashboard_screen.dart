@@ -1,5 +1,6 @@
 import '../../widgets/marketing_section_header.dart';
 import '../../widgets/legal_documents_widget.dart';
+import '../../widgets/privacy_settings_card.dart';
 import '../../widgets/voice_message_widgets.dart';
 import '../../models/teacher_registration_model.dart';
 import '../../services/teacher_registration_service.dart';
@@ -1779,6 +1780,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               },
               label: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Sauvegarder mon profil formateur'),
             ),
+            const PrivacySettingsCard(),
           ],
         ),
       ),
