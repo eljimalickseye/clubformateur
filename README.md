@@ -1,62 +1,75 @@
-# clubformateur
+# Club des Formateurs — Monorepo
 
-Backend API **Laravel 13 (PHP 8.3)** Dockerisé pour la plateforme **Club des Formateurs** (`https://club-des-formateurs.web.app`).
+Dépôt unique regroupant le backend API **Laravel 13** et l'application multiplateforme **Flutter**.
 
 ---
 
-## 🚀 Déploiement rapide sur un VPS (Ubuntu / Debian) avec Docker
+## 📁 Architecture du projet
 
-### 1. Cloner le dépôt sur le VPS
-```bash
-git clone https://github.com/eljimalickseye/clubformateur.git
-cd clubformateur
+```text
+clubformateur/
+├── backend-laravel/          # API REST Laravel 13 (PHP 8.3-FPM + Nginx)
+│   ├── app/                  # Contrôleurs API, Modèles Eloquent, Middleware
+│   ├── config/               # Configurations Laravel (Cache Redis, Auth, DB)
+│   ├── database/             # Migrations et Seeders
+│   ├── docker/               # Nginx, PHP-FPM, Supervisor & Entrypoint
+│   ├── docs/                 # Rapport d'audit de sécurité et conformité RGPD
+│   ├── routes/api.php        # 59 routes de l'API /api/v1
+│   ├── tests/                # Suite de tests automatisés PHPUnit
+│   ├── Dockerfile            # Image de production Nginx + PHP 8.3
+│   └── docker-compose.yml    # Services API, MySQL 8.0, Redis 7 & phpMyAdmin
+│
+├── flutter/                  # Application multiplateforme (Web, Android, iOS, Desktop)
+│   ├── lib/                  # Code source Dart (Écrans, Services API, Modèles)
+│   ├── assets/               # Médias, logos et polices
+│   ├── web/                  # Configuration Web & PWA
+│   └── pubspec.yaml          # Dépendances Flutter & packages
+│
+├── docker-compose.yml        # Compose root incluant le backend
+├── .gitignore                # Règles d'exclusion unifiées (PHP & Flutter)
+└── README.md
 ```
 
-### 2. Lancer les conteneurs (API Laravel 13 + MySQL 8.0 + phpMyAdmin + Redis 7)
+---
+
+## 🚀 Démarrage rapide
+
+### 1. Démarrer le Backend (API Laravel + MySQL + Redis)
+
+Depuis la racine du projet :
 ```bash
-docker compose up -d --build
+cd backend-laravel
+docker compose --env-file .env.docker up -d
 ```
-Au démarrage, le conteneur exécute automatiquement ([docker/entrypoint.sh](docker/entrypoint.sh)) :
-- La création du fichier `.env` à partir de `.env.docker`
-- L'attente de disponibilité de MySQL 8.0
-- Les migrations des **14 tables** (`php artisan migrate --force`)
-- Le pré-remplissage initial (`php artisan db:seed --force`) si la base est vide
-- L'ouverture du serveur **Nginx + PHP 8.3-FPM** sur le port `8000`
-
-### 3. Vérifier que l'API répond
+Ou directement depuis la racine :
 ```bash
-curl http://localhost:8000/api/v1/health
+docker compose -p clubformateur --env-file backend-laravel/.env.docker up -d
 ```
 
+- **API URL** : `http://localhost:8095/api/v1`
+- **Santé de l'API** : `http://localhost:8095/api/v1/health`
+- **phpMyAdmin** *(optionnel)* : `http://localhost:8096`
+
+### 2. Démarrer le Frontend Flutter (Web)
+
+Dans un autre terminal :
+```bash
+cd flutter
+flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0 --dart-define=LARAVEL_API_URL=http://localhost:8095/api/v1
+```
+Ou avec Google Chrome :
+```bash
+cd flutter
+flutter run -d chrome --dart-define=LARAVEL_API_URL=http://localhost:8095/api/v1
+```
+
+- **Application Web** : `http://localhost:3000`
+
 ---
 
-## 📦 Services inclus dans `docker-compose.yml`
-
-| Service | Conteneur | Port Hôte | Description |
-| :--- | :--- | :--- | :--- |
-| **API Laravel 13** | `club_formateurs_api` | `8000` | API REST `/api/v1/...` (Nginx + PHP 8.3-FPM + Supervisor) |
-| **MySQL 8.0** | `club_formateurs_db` | `3307` | Base `club_des_formateurs` (`club_user` / `club_password`) |
-| **phpMyAdmin** | `club_formateurs_pma` | `8080` | Interface Web MySQL (`http://IP_DU_VPS:8080`) |
-| **Redis 7** | `club_formateurs_redis` | `6379` | Cache, sessions & files d'attente |
-
----
-
-## 🔌 Intégrations préconfigurées
-- **LiveKit Cloud (Studio Direct & JWT HS256)** : `LIVEKIT_URL=wss://anour-rv83fs3g.livekit.cloud`
-- **API Intech (Wave & Orange Money Sénégal)** :
-  - `WAVE_SERVICE_CODE=WAVE_SN_API_CASH_OUT`
-  - `OM_SERVICE_CODE=ORANGE_SN_API_CASH_OUT`
-
----
-
-## 🛣️ Aperçu des 59 Routes API (`/api/v1`)
-- `GET /api/v1/health` — Statut de santé de l'API
-- `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/demo-login`, `GET /api/v1/auth/me`
-- `GET|POST /api/v1/courses`, `PUT|DELETE /api/v1/courses/{id}`, `PATCH /api/v1/courses/{id}/toggle-publish`, `POST /api/v1/courses/upload-media`
-- `GET|POST /api/v1/courses/{id}/lessons`, `GET|POST /api/v1/courses/{id}/replays`
-- `GET|POST /api/v1/live-sessions`, `POST /api/v1/live-sessions/{id}/start`, `POST /api/v1/live-sessions/{id}/switch-phase`, `POST /api/v1/live-sessions/{id}/end`, `POST /api/v1/live-sessions/{id}/token`
-- `GET /api/v1/payments/wallet`, `POST /api/v1/payments/withdraw`, `POST /api/v1/payments/checkout`, `POST /api/v1/payments/status`
-- `GET|POST /api/v1/chat/conversations`, `GET|POST /api/v1/chat/conversations/{id}/messages`
-- `GET|POST /api/v1/homeworks`, `POST /api/v1/homeworks/{id}/grade`
-- `GET|POST /api/v1/study-groups`, `POST /api/v1/study-groups/{id}/join`
-- `GET /api/v1/admin/overview`, `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}/role`
+## 🔒 Sécurité & Audit Réalisé
+- **Authentification** : Jetons API hashés en SHA-256 avec date d'expiration, élimination des mocks et validation stricte côté serveur.
+- **Protection des paiements & visio** : Clés privées Intech et LiveKit isolées sur le backend Laravel.
+- **Conformité RGPD** : Export des données personnelles (`GET /api/v1/user/export-data`) et droit à l'oubli (`POST /api/v1/user/delete-account`).
+- **Cache & Performance** : Cache Redis sur le catalogue de formations avec revalidation HTTP `304 Not Modified` via headers `ETag` / `If-None-Match`.
+- **Interface Réactive** : Grilles de cours, profils et modales adaptatives garantissant l'absence de débordement graphique sur smartphone et desktop.

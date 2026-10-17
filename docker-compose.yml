@@ -1,0 +1,4 @@
+include:
+  - path:
+      - backend-laravel/docker-compose.yml
+    project_directory: backend-laravel
