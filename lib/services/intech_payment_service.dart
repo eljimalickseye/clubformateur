@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'laravel_api_service.dart';
 
 enum WithdrawalMethod { wave, orangeMoney }
 
@@ -64,9 +64,6 @@ class IntechPaymentService {
   factory IntechPaymentService() => _instance;
   IntechPaymentService._internal();
 
-  static const String apiKey = '9D65FC1C-BA2D-4102-BFC5-F0D348277999';
-  static const String payUrl = 'https://api.intech.sn/api-services/operation';
-  static const String statusUrl = 'https://api.intech.sn/api-services/get-transaction-status';
   static const String waveServiceCode = 'WAVE_SN_API_CASH_OUT';
   static const String orangeServiceCode = 'ORANGE_SN_API_CASH_OUT';
 
@@ -94,48 +91,32 @@ class IntechPaymentService {
     final serviceCode = method == WithdrawalMethod.wave ? waveServiceCode : orangeServiceCode;
     final providerName = method == WithdrawalMethod.wave ? 'Wave Sénégal' : 'Orange Money Sénégal';
     final formattedPhone = formatSenegalPhone(phone);
-    final externalTxId = 'cf_retrait_${DateTime.now().millisecondsSinceEpoch}';
+    String externalTxId = 'cf_retrait_${DateTime.now().millisecondsSinceEpoch}';
 
-    String status = 'SUCCESS';
-    String message = 'Demande de retrait transmise avec succès via $providerName';
+    String status = 'PENDING';
+    String message = 'Demande de retrait transmise via $providerName';
 
     try {
-      final response = await http.post(
-        Uri.parse(payUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'phone': formattedPhone,
-          'amount': amount,
-          'codeService': serviceCode,
-          'externalTransactionId': externalTxId,
-          'apiKey': apiKey,
-          'sender': 'Club des Formateurs',
-          'recipientName': teacherName,
-          'type': 'teacher_withdrawal',
-        }),
-      ).timeout(const Duration(seconds: 10));
+      // Routage sécurisé via l'API Laravel (secrets protégés côté serveur, transaction atomique et contrôle du solde)
+      final res = await LaravelApiService().post('/payments/withdraw', {
+        'amount': amount,
+        'phone': formattedPhone,
+        'method': method == WithdrawalMethod.wave ? 'wave' : 'orange',
+      });
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        if (data['error'] == true) {
-          status = 'PENDING';
-          message = data['msg'] ?? 'En attente de validation opérateur';
-        } else {
-          status = 'SUCCESS';
-          message = data['msg'] ?? 'Retrait validé avec succès';
-        }
+      if (res != null && res['success'] == true) {
+        final txData = res['transaction'] as Map<String, dynamic>?;
+        status = txData?['status'] ?? 'SUCCESS';
+        externalTxId = txData?['external_transaction_id'] ?? externalTxId;
+        message = res['message'] ?? 'Retrait validé avec succès ($providerName)';
       } else {
-        // Fallback for demo / offline / dev mode
-        status = 'SUCCESS';
-        message = 'Demande enregistrée et en cours de décaissement ($providerName)';
+        status = 'FAILED';
+        message = res?['message'] ?? 'Échec de la demande de retrait';
       }
     } catch (e) {
-      debugPrint('Intech API network call handled: $e');
-      status = 'SUCCESS';
-      message = 'Demande de retrait envoyée à l\'opérateur $providerName (Réf: $externalTxId)';
+      debugPrint('Laravel withdrawal API error: $e');
+      status = 'FAILED';
+      message = 'Erreur lors du traitement du retrait : $e';
     }
 
     final tx = IntechTransaction(
