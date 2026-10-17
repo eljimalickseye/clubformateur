@@ -671,9 +671,12 @@ class _CourseCreationStudioScreenState extends State<CourseCreationStudioScreen>
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
-        content: SizedBox(
-          width: 440,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
@@ -695,6 +698,8 @@ class _CourseCreationStudioScreenState extends State<CourseCreationStudioScreen>
             ],
           ),
         ),
+      ),
+    ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
           ElevatedButton(
@@ -760,9 +765,11 @@ class _CourseCreationStudioScreenState extends State<CourseCreationStudioScreen>
               ),
             ],
           ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,6 +939,7 @@ class _CourseCreationStudioScreenState extends State<CourseCreationStudioScreen>
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
             ElevatedButton(
@@ -991,8 +999,11 @@ class _CourseCreationStudioScreenState extends State<CourseCreationStudioScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Container(
-          width: 720,
-          constraints: const BoxConstraints(maxHeight: 700),
+          constraints: BoxConstraints(
+            maxWidth: 720,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          width: MediaQuery.of(context).size.width,
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

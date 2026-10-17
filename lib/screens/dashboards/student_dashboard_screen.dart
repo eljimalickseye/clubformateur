@@ -1082,8 +1082,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Container(
-            width: 720,
-            constraints: const BoxConstraints(maxHeight: 700),
+            constraints: BoxConstraints(
+              maxWidth: 720,
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
+            ),
+            width: MediaQuery.of(context).size.width,
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1417,9 +1420,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Ma copie déposée', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
-        content: SizedBox(
-          width: 500,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1464,6 +1470,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ],
           ),
         ),
+      ),
+    ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.emeraldGreenDark, foregroundColor: Colors.white),
@@ -1487,9 +1495,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Text('Évaluation & Remarques', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
           ],
         ),
-        content: SizedBox(
-          width: 480,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1542,6 +1553,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ],
           ),
         ),
+      ),
+    ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.emeraldGreenDark, foregroundColor: Colors.white),
@@ -1792,9 +1805,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         builder: (context, setModalState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Payer une mensualité', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
-          content: SizedBox(
-            width: 380,
-            child: Column(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1839,6 +1855,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ],
             ),
           ),
+        ),
+      ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
             ElevatedButton(
@@ -1877,9 +1895,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 480,
+          constraints: BoxConstraints(
+            maxWidth: 480,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          width: MediaQuery.of(context).size.width,
           padding: const EdgeInsets.all(28),
-          child: Column(
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Header
@@ -1959,11 +1982,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
-                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.print_rounded, size: 16),
                     label: const Text('Imprimer / Sauvegarder PDF'),
@@ -1981,7 +2005,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _receiptRow(String label, String value) {
@@ -2947,15 +2972,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         builder: (context, setChatState) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 550,
-            height: 600,
+            constraints: BoxConstraints(
+              maxWidth: 550,
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            width: MediaQuery.of(context).size.width,
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Salon : ${group.name}', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
+                    Expanded(
+                      child: Text(
+                        'Salon : ${group.name}',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(ctx)),
                   ],
                 ),
@@ -3099,9 +3133,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Text('Nouvelle discussion', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 16)),
           ],
         ),
-        content: SizedBox(
-          width: 360,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
@@ -3158,6 +3194,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ],
           ),
         ),
+      ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

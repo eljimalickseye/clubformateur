@@ -1374,10 +1374,16 @@ class _SuperAdminDashboardScreenState
                           builder: (ctx) => AlertDialog(
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             title: const Text('Export JSON des logs d\'audit'),
-                            content: SizedBox(
-                              width: 500,
-                              height: 300,
-                              child: SingleChildScrollView(child: SelectableText(jsonStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))),
+                            content: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: 500,
+                                maxHeight: MediaQuery.of(context).size.height * 0.6,
+                              ),
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                height: 300,
+                                child: SingleChildScrollView(child: SelectableText(jsonStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 11))),
+                              ),
                             ),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
@@ -1618,12 +1624,15 @@ class _SuperAdminDashboardScreenState
                 builder: (ctx) => AlertDialog(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   title: Text('Détails Log #${log.id}', style: const TextStyle(fontSize: 15)),
-                  content: SizedBox(
-                    width: 440,
-                    child: SingleChildScrollView(
-                      child: SelectableText(
-                        'Action: ${log.action}\nNiveau: ${log.level}\nCatégorie: ${log.category}\nActeur: ${log.actorName} (${log.actorRole})\nDate: ${log.timestamp.toIso8601String()}\nIP: ${log.ipAddress}\nPlateforme: ${log.platform}\nDétails: ${log.details}\nMétadonnées: ${log.metadata}',
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  content: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 440),
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          'Action: ${log.action}\nNiveau: ${log.level}\nCatégorie: ${log.category}\nActeur: ${log.actorName} (${log.actorRole})\nDate: ${log.timestamp.toIso8601String()}\nIP: ${log.ipAddress}\nPlateforme: ${log.platform}\nDétails: ${log.details}\nMétadonnées: ${log.metadata}',
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                        ),
                       ),
                     ),
                   ),
@@ -1915,9 +1924,11 @@ class _SuperAdminDashboardScreenState
               const Text('Publier une Mise à Jour'),
             ],
           ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2001,6 +2012,7 @@ class _SuperAdminDashboardScreenState
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -2078,9 +2090,11 @@ class _SuperAdminDashboardScreenState
               const Text('Créer un utilisateur'),
             ],
           ),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2250,6 +2264,7 @@ class _SuperAdminDashboardScreenState
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -2484,9 +2499,11 @@ class _UserAdminCard extends StatelessWidget {
             ),
           ],
         ),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -2514,6 +2531,7 @@ class _UserAdminCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

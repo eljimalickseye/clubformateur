@@ -203,8 +203,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         builder: (context, setLessonsState) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 600,
-            height: 650,
+            constraints: BoxConstraints(
+              maxWidth: 600,
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            width: MediaQuery.of(context).size.width,
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,9 +339,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Nouvelle leçon vidéo', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700)),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -387,6 +392,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
             ElevatedButton(
@@ -490,9 +496,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ),
               ],
             ),
-            content: SizedBox(
-              width: 480,
-              child: SingleChildScrollView(
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,6 +681,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ),
               ),
             ),
+          ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
               ElevatedButton(
@@ -1414,9 +1423,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             Text('Nouvelle discussion', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 16)),
           ],
         ),
-        content: SizedBox(
-          width: 360,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
@@ -1463,6 +1474,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             ],
           ),
         ),
+      ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -2126,9 +2138,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   ),
               ],
             ),
-            content: SizedBox(
-              width: 440,
-              child: regs.isEmpty
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 440,
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: regs.isEmpty
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 30),
                       child: Center(
@@ -2210,6 +2227,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         );
                       },
                     ),
+              ),
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
@@ -2615,9 +2633,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text('Nouvelle Classe (Max 100 étudiants)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
-            content: SizedBox(
-              width: 440,
-              child: Column(
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: SingleChildScrollView(
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2681,6 +2702,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ],
               ),
             ),
+          ),
+        ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
               ElevatedButton(
@@ -2746,10 +2769,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             ),
           ],
         ),
-        content: SizedBox(
-          width: 520,
-          height: 420,
-          child: cohort.studentIds.isEmpty
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 520,
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: cohort.studentIds.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -2835,6 +2862,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   },
                 ),
         ),
+      ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.emeraldGreenDark, foregroundColor: Colors.white),
@@ -3090,9 +3118,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               Text('Planifier un créneau', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
             ],
           ),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3199,6 +3229,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -3473,10 +3504,14 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
             ],
           ],
         ),
-        content: SizedBox(
-          width: 580,
-          height: 420,
-          child: subs.isEmpty
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 580,
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: subs.isEmpty
               ? const Center(child: Text('Aucune copie rendue pour le moment.', style: TextStyle(color: AppTheme.textMuted)))
               : ListView.separated(
                   itemCount: subs.length,
@@ -3556,6 +3591,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   },
                 ),
         ),
+      ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.emeraldGreenDark, foregroundColor: Colors.white),
@@ -5048,9 +5084,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               Text('Demande de retrait d\'argent', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16)),
             ],
           ),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -5162,6 +5200,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),

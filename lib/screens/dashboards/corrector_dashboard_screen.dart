@@ -165,9 +165,12 @@ class _CorrectorDashboardScreenState extends State<CorrectorDashboardScreen> {
             ),
           ],
         ),
-        content: SizedBox(
-          width: 440,
-          child: Column(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -278,6 +281,8 @@ class _CorrectorDashboardScreenState extends State<CorrectorDashboardScreen> {
             ],
           ),
         ),
+      ),
+    ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -645,47 +650,61 @@ class _CorrectorDashboardScreenState extends State<CorrectorDashboardScreen> {
           const SizedBox(height: 24),
 
           // Stats cards
-          Row(
-            children: [
-              _StatCard(
-                label: 'Copies en attente d\'évaluation',
-                icon: Icons.assignment_late_rounded,
-                color: const Color(0xFFF59E0B),
-                stream: _homeworkService
-                    .getAllSubmissionsStream()
-                    .map((subs) => subs.where((s) => s.status != 'corrected').length.toString()),
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                label: 'Corrections effectuées',
-                icon: Icons.check_circle_rounded,
-                color: AppTheme.emeraldGreen,
-                stream: _homeworkService
-                    .getCorrectorCorrectionsStream(user.uid)
-                    .map((c) => c.length.toString()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _StatCard(
-                label: 'Formateur associé',
-                icon: Icons.person_rounded,
-                color: const Color(0xFF6366F1),
-                value: _linkedTeacher?.displayName ?? 'Plateforme Générale (Tous les cours)',
-              ),
-              const SizedBox(width: 16),
-              _StatCard(
-                label: 'Session live d\'exercices',
-                icon: Icons.videocam_rounded,
-                color: const Color(0xFFEC4899),
-                value: _activeLiveSessionId != null
-                    ? 'En cours (${_formatDuration(_liveElapsedSeconds)})'
-                    : 'Prêt à démarrer (1h30)',
-              ),
-            ],
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 640;
+            final card1 = _StatCard(
+              label: 'Copies en attente d\'évaluation',
+              icon: Icons.assignment_late_rounded,
+              color: const Color(0xFFF59E0B),
+              stream: _homeworkService
+                  .getAllSubmissionsStream()
+                  .map((subs) => subs.where((s) => s.status != 'corrected').length.toString()),
+            );
+            final card2 = _StatCard(
+              label: 'Corrections effectuées',
+              icon: Icons.check_circle_rounded,
+              color: AppTheme.emeraldGreen,
+              stream: _homeworkService
+                  .getCorrectorCorrectionsStream(user.uid)
+                  .map((c) => c.length.toString()),
+            );
+            final card3 = _StatCard(
+              label: 'Formateur associé',
+              icon: Icons.person_rounded,
+              color: const Color(0xFF6366F1),
+              value: _linkedTeacher?.displayName ?? 'Plateforme Générale (Tous les cours)',
+            );
+            final card4 = _StatCard(
+              label: 'Session live d\'exercices',
+              icon: Icons.videocam_rounded,
+              color: const Color(0xFFEC4899),
+              value: _activeLiveSessionId != null
+                  ? 'En cours (${_formatDuration(_liveElapsedSeconds)})'
+                  : 'Prêt à démarrer (1h30)',
+            );
+
+            if (isMobile) {
+              return Column(
+                children: [
+                  card1,
+                  const SizedBox(height: 12),
+                  card2,
+                  const SizedBox(height: 12),
+                  card3,
+                  const SizedBox(height: 12),
+                  card4,
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                Row(children: [Expanded(child: card1), const SizedBox(width: 16), Expanded(child: card2)]),
+                const SizedBox(height: 16),
+                Row(children: [Expanded(child: card3), const SizedBox(width: 16), Expanded(child: card4)]),
+              ],
+            );
+          }),
           const SizedBox(height: 24),
 
           // Quick actions
@@ -1854,8 +1873,11 @@ class _CorrectorDashboardScreenState extends State<CorrectorDashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Container(
-          width: 720,
-          constraints: const BoxConstraints(maxHeight: 760),
+          constraints: BoxConstraints(
+            maxWidth: 720,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          width: MediaQuery.of(context).size.width,
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2314,8 +2336,8 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
+    return Container(
+      width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -2353,8 +2375,7 @@ class _StatCard extends StatelessWidget {
                     fontSize: 11, color: AppTheme.textMuted)),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
