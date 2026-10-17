@@ -3860,8 +3860,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             final totalSubmissions = submissions.length;
 
             return LayoutBuilder(builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 600;
-              final w = isCompact ? (constraints.maxWidth - 16) / 2 : (constraints.maxWidth - 48) / 4;
+              final isVeryCompact = constraints.maxWidth < 400;
+              final isCompact = constraints.maxWidth < 640;
+              final w = isVeryCompact ? constraints.maxWidth : (isCompact ? (constraints.maxWidth - 16) / 2 : (constraints.maxWidth - 48) / 4);
               return Wrap(
                 spacing: 16,
                 runSpacing: 16,

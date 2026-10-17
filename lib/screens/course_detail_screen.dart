@@ -286,74 +286,141 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1240),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Breadcrumb
-                      Expanded(
-                        child: Row(
+                  child: width < 768
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InkWell(
-                              onTap: () => Navigator.pop(context),
-                              child: Text('Accueil', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
-                            ),
-                            const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
-                            InkWell(
-                              onTap: () => Navigator.pop(context),
-                              child: Text('Formations', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
-                            ),
-                            const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
-                            Text(course.category, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
-                            const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
-                            Flexible(
-                              child: Text(
-                                course.title,
-                                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                                overflow: TextOverflow.ellipsis,
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text('Accueil', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  ),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  InkWell(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text('Formations', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  ),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  Text(course.category, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  Text(
+                                    course.title,
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                  ),
+                                ],
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _handleShare,
+                                  icon: const Icon(Icons.share_outlined, size: 14),
+                                  label: Text('Partager', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    side: const BorderSide(color: AppTheme.cardBorder),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _handleToggleFavorite,
+                                  icon: Icon(
+                                    _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    size: 14,
+                                    color: _isFavorited ? const Color(0xFFE11D48) : null,
+                                  ),
+                                  label: Text(
+                                    _isFavorited ? 'Dans vos favoris' : 'Ajouter aux favoris',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: _isFavorited ? const Color(0xFFE11D48) : null,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    side: BorderSide(color: _isFavorited ? const Color(0xFFE11D48) : AppTheme.cardBorder),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Breadcrumb
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text('Accueil', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  ),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  InkWell(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Text('Formations', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  ),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  Text(course.category, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted)),
+                                  const Text(' > ', style: TextStyle(color: AppTheme.textLight, fontSize: 12)),
+                                  Flexible(
+                                    child: Text(
+                                      course.title,
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Actions (Partager & Favoris)
+                            Row(
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _handleShare,
+                                  icon: const Icon(Icons.share_outlined, size: 14),
+                                  label: Text('Partager', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    side: const BorderSide(color: AppTheme.cardBorder),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                OutlinedButton.icon(
+                                  onPressed: _handleToggleFavorite,
+                                  icon: Icon(
+                                    _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    size: 14,
+                                    color: _isFavorited ? const Color(0xFFE11D48) : null,
+                                  ),
+                                  label: Text(
+                                    _isFavorited ? 'Dans vos favoris' : 'Ajouter aux favoris',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: _isFavorited ? const Color(0xFFE11D48) : null,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    side: BorderSide(color: _isFavorited ? const Color(0xFFE11D48) : AppTheme.cardBorder),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ),
-                      // Actions (Partager & Favoris)
-                      Row(
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _handleShare,
-                            icon: const Icon(Icons.share_outlined, size: 14),
-                            label: Text('Partager', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              side: const BorderSide(color: AppTheme.cardBorder),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton.icon(
-                            onPressed: _handleToggleFavorite,
-                            icon: Icon(
-                              _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              size: 14,
-                              color: _isFavorited ? const Color(0xFFE11D48) : null,
-                            ),
-                            label: Text(
-                              _isFavorited ? 'Dans vos favoris' : 'Ajouter aux favoris',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _isFavorited ? const Color(0xFFE11D48) : null,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              side: BorderSide(color: _isFavorited ? const Color(0xFFE11D48) : AppTheme.cardBorder),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -1955,9 +2022,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             ],
           ),
           content: SingleChildScrollView(
-            child: SizedBox(
-              width: 440,
-              child: Column(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2137,6 +2206,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               ),
             ),
           ),
+        ),
           actions: [
             if (!isProcessing) ...[
               TextButton(

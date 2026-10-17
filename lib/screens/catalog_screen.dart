@@ -644,12 +644,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
     int crossAxisCount = 3;
     final width = MediaQuery.of(context).size.width;
+    double childAspectRatio = 0.68;
     if (width < 640) {
       crossAxisCount = 1;
+      childAspectRatio = width < 420 ? 0.98 : 1.15;
     } else if (width < 1000) {
       crossAxisCount = 2;
+      childAspectRatio = 0.72;
     } else if (width > 1400) {
       crossAxisCount = 4;
+      childAspectRatio = 0.68;
     }
 
     return GridView.builder(
@@ -660,7 +664,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.62,
+        childAspectRatio: childAspectRatio,
       ),
       itemBuilder: (context, index) {
         final course = courses[index];
