@@ -228,12 +228,9 @@ class AuthService {
 
     // 1. Synchronisation dynamique avec le backend Laravel (MySQL sur le VPS)
     try {
+      final idToken = await firebaseUser.getIdToken();
       final res = await LaravelApiService().post('/auth/google', {
-        'email': email,
-        'displayName': name,
-        'photoUrl': photo,
-        'uid': uid,
-        'role': role,
+        'idToken': idToken ?? '',
       });
 
       if (res != null && res['success'] == true && res['user'] != null) {
