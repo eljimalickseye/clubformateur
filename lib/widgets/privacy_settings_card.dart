@@ -50,12 +50,14 @@ class _PrivacySettingsCardState extends State<PrivacySettingsCard> {
             Text('Export de vos données', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
           ],
         ),
-        content: SizedBox(
-          width: 500,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Text(
                 'Vos données enregistrées sur la plateforme conformément à la loi sénégalaise 2008-12 et au RGPD :',
                 style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppTheme.textMuted),
@@ -89,7 +91,8 @@ class _PrivacySettingsCardState extends State<PrivacySettingsCard> {
             ],
           ),
         ),
-        actions: [
+      ),
+      actions: [
           TextButton.icon(
             icon: const Icon(Icons.copy_rounded, size: 16),
             label: const Text('Copier le JSON'),
@@ -153,33 +156,36 @@ class _PrivacySettingsCardState extends State<PrivacySettingsCard> {
               Text('Supprimer mon compte'),
             ],
           ),
-          content: SizedBox(
-            width: 440,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Cette action est irréversible. Votre compte et vos données personnelles seront définitivement anonymisés (loi 2008-12 / RGPD).',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Note : Si vous êtes formateur, veillez à retirer l\'intégralité de votre solde avant la suppression.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFD97706)),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmez avec votre mot de passe',
-                    border: const OutlineInputBorder(),
-                    errorText: errorMessage,
-                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Cette action est irréversible. Votre compte et vos données personnelles seront définitivement anonymisés (loi 2008-12 / RGPD).',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Note : Si vous êtes formateur, veillez à retirer l\'intégralité de votre solde avant la suppression.',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFD97706)),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmez avec votre mot de passe',
+                      border: const OutlineInputBorder(),
+                      errorText: errorMessage,
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [

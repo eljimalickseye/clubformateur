@@ -93,12 +93,15 @@ class _TrainersScreenState extends State<TrainersScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: const EdgeInsets.all(28),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
@@ -277,8 +280,10 @@ class _TrainersScreenState extends State<TrainersScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   @override
   Widget build(BuildContext context) {

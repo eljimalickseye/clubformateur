@@ -98,8 +98,8 @@ class AppNotificationDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: 480,
-        constraints: const BoxConstraints(maxHeight: 620),
+        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 620),
+        width: MediaQuery.of(context).size.width,
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
         child: Column(
           children: [

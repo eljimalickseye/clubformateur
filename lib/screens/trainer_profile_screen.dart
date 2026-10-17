@@ -360,9 +360,11 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
             ],
           ),
           content: SingleChildScrollView(
-            child: SizedBox(
-              width: 480,
-              child: Column(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -537,6 +539,7 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
               ),
             ),
           ),
+        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),

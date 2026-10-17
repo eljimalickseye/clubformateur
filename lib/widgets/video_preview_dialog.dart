@@ -47,8 +47,11 @@ class VideoPreviewDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Center(
         child: Container(
-          width: 780,
-          constraints: const BoxConstraints(maxHeight: 680),
+          constraints: BoxConstraints(
+            maxWidth: 780,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          width: MediaQuery.of(context).size.width,
           decoration: BoxDecoration(
             color: const Color(0xFF0F172A),
             borderRadius: BorderRadius.circular(20),
@@ -152,12 +155,16 @@ class VideoPreviewDialog extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      videoUrl.length > 50 ? '${videoUrl.substring(0, 48)}...' : videoUrl,
-                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    Expanded(
+                      child: Text(
+                        videoUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,

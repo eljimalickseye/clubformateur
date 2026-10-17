@@ -359,8 +359,11 @@ Analyser la situation présentée dans le document joint et formuler des recomma
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
-        width: 860,
-        constraints: const BoxConstraints(maxHeight: 820),
+        constraints: BoxConstraints(
+          maxWidth: 860,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        width: MediaQuery.of(context).size.width,
         padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
