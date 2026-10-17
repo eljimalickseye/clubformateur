@@ -1,17 +1,72 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'laravel_api_service.dart';
 
 class LiveKitService {
   static final LiveKitService _instance = LiveKitService._internal();
   factory LiveKitService() => _instance;
   LiveKitService._internal();
 
-  static const String serverUrl = 'wss://anour-rv83fs3g.livekit.cloud';
-  static const String apiKey = 'APIsCo9dSx9D6VC';
-  static const String apiSecret = 'uOfP2sDQQjFe3dREQazqQq3fLWkv5JPfMVnikLAoCPAB';
+  static const String serverUrl = String.fromEnvironment(
+    'LIVEKIT_SERVER_URL',
+    defaultValue: 'wss://anour-rv83fs3g.livekit.cloud',
+  );
 
-  /// Generates a valid HS256 LiveKit JWT Access Token
+  final LaravelApiService _api = LaravelApiService();
+
+  /// Récupère un jeton d'accès LiveKit généré et signé par le backend Laravel (POST /api/v1/livekit/token).
+  /// Les secrets et les autorisations de publication (canPublish) sont strictement contrôlés côté serveur.
+  Future<Map<String, dynamic>?> fetchLiveKitToken(String roomName) async {
+    try {
+      final res = await _api.post('/livekit/token', {'roomName': roomName});
+      if (res != null && res['token'] != null) {
+        debugPrint('LiveKitService: Jeton sécurisé récupéré depuis l\'API pour le salon $roomName');
+        return res;
+      }
+    } catch (e) {
+      debugPrint('LiveKitService: Erreur lors de la récupération du jeton via l\'API: $e');
+    }
+    return null;
+  }
+
+  /// Récupère la configuration de connexion complète de manière asynchrone via l'API.
+  Future<Map<String, dynamic>> fetchConnectionConfig({
+    required String roomName,
+    required String participantIdentity,
+    required String participantName,
+    bool isTeacher = false,
+  }) async {
+    final serverData = await fetchLiveKitToken(roomName);
+    final token = serverData?['token']?.toString() ?? '';
+    final url = serverData?['serverUrl']?.toString() ?? serverUrl;
+
+    return {
+      'serverUrl': url,
+      'token': token,
+      'roomName': roomName,
+      'participantIdentity': participantIdentity,
+      'participantName': participantName,
+      'isTeacher': isTeacher,
+    };
+  }
+
+  /// Fournit une configuration par défaut sans exposer de secret.
+  Map<String, dynamic> getConnectionConfig({
+    required String roomName,
+    required String participantIdentity,
+    required String participantName,
+    bool isTeacher = false,
+  }) {
+    return {
+      'serverUrl': serverUrl,
+      'token': '',
+      'roomName': roomName,
+      'participantIdentity': participantIdentity,
+      'participantName': participantName,
+      'isTeacher': isTeacher,
+    };
+  }
+
+  /// Méthode conservée pour compatibilité d'interface sans secret en dur.
   String createAccessToken({
     required String roomName,
     required String participantIdentity,
@@ -19,72 +74,10 @@ class LiveKitService {
     bool isTeacher = false,
     Duration validFor = const Duration(hours: 4),
   }) {
-    final now = DateTime.now();
-    final exp = now.add(validFor);
-
-    // 1. JWT Header
-    final header = {
-      'alg': 'HS256',
-      'typ': 'JWT',
-    };
-
-    // 2. JWT Payload compliant with LiveKit specifications
-    final payload = {
-      'iss': apiKey,
-      'sub': participantIdentity,
-      'name': participantName,
-      'nbf': (now.millisecondsSinceEpoch ~/ 1000) - 10,
-      'exp': exp.millisecondsSinceEpoch ~/ 1000,
-      'metadata': isTeacher ? 'teacher' : 'student',
-      'video': {
-        'room': roomName,
-        'roomJoin': true,
-        'canPublish': isTeacher,
-        'canSubscribe': true,
-        'canPublishData': true,
-        'canPublishSources': isTeacher ? ['camera', 'microphone', 'screen_share', 'screen_share_audio'] : [],
-      },
-    };
-
-    final headerB64 = _base64UrlEncode(utf8.encode(jsonEncode(header)));
-    final payloadB64 = _base64UrlEncode(utf8.encode(jsonEncode(payload)));
-    final dataToSign = '$headerB64.$payloadB64';
-
-    // 3. HMAC-SHA256 signature using API Secret
-    final hmac = Hmac(sha256, utf8.encode(apiSecret));
-    final signature = hmac.convert(utf8.encode(dataToSign));
-    final signatureB64 = _base64UrlEncode(signature.bytes);
-
-    final jwt = '$dataToSign.$signatureB64';
-    debugPrint('LiveKit Token generated for room: $roomName (role: ${isTeacher ? 'teacher' : 'student'})');
-    return jwt;
-  }
-
-  String _base64UrlEncode(List<int> bytes) {
-    return base64Url.encode(bytes).replaceAll('=', '');
-  }
-
-  /// Builds connection configuration for a session
-  Map<String, dynamic> getConnectionConfig({
-    required String roomName,
-    required String participantIdentity,
-    required String participantName,
-    bool isTeacher = false,
-  }) {
-    final token = createAccessToken(
-      roomName: roomName,
-      participantIdentity: participantIdentity,
-      participantName: participantName,
-      isTeacher: isTeacher,
+    debugPrint(
+      'LiveKitService: La signature locale avec secret a été supprimée pour des raisons de sécurité. '
+      'Utilisez fetchLiveKitToken().',
     );
-
-    return {
-      'serverUrl': serverUrl,
-      'token': token,
-      'roomName': roomName,
-      'participantIdentity': participantIdentity,
-      'participantName': participantName,
-      'isTeacher': isTeacher,
-    };
+    return '';
   }
 }

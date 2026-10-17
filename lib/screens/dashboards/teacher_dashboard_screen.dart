@@ -5420,18 +5420,22 @@ class _TeacherLiveStudioDialogState extends State<TeacherLiveStudioDialog> {
   Timer? _countdownTimer;
   int _tabIndex = 0; // 0: Chat, 1: Participants
   final List<String> _raisedHands = ['Moussa Ndiaye (Demande de parole)', 'Aminata Diallo'];
-  late String _liveKitToken;
+  String _liveKitToken = '';
 
   @override
   void initState() {
     super.initState();
-    _liveKitToken = _liveKitService.createAccessToken(
-      roomName: widget.live.roomName,
-      participantIdentity: widget.currentUser.uid,
-      participantName: widget.currentUser.displayName,
-      isTeacher: true,
-    );
+    _loadLiveKitToken();
     _startTimer();
+  }
+
+  Future<void> _loadLiveKitToken() async {
+    final res = await _liveKitService.fetchLiveKitToken(widget.live.roomName);
+    if (mounted && res != null && res['token'] != null) {
+      setState(() {
+        _liveKitToken = res['token'].toString();
+      });
+    }
   }
 
   void _startTimer() {

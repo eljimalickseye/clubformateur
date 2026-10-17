@@ -5577,12 +5577,14 @@ class _LiveViewerDialogState extends State<LiveViewerDialog> {
   @override
   void initState() {
     super.initState();
+    final room = widget.live.roomName.isNotEmpty ? widget.live.roomName : widget.live.id;
     _liveKitConfig = LiveKitService().getConnectionConfig(
-      roomName: widget.live.id,
+      roomName: room,
       participantIdentity: widget.currentUser.uid,
       participantName: widget.currentUser.displayName,
       isTeacher: false,
     );
+    _loadLiveKitConfig(room);
 
     final startDiff = DateTime.now().difference(widget.live.scheduledAt).inSeconds;
     _secondsElapsed = startDiff > 0 ? startDiff : 0;
@@ -5594,6 +5596,20 @@ class _LiveViewerDialogState extends State<LiveViewerDialog> {
         });
       }
     });
+  }
+
+  Future<void> _loadLiveKitConfig(String room) async {
+    final config = await LiveKitService().fetchConnectionConfig(
+      roomName: room,
+      participantIdentity: widget.currentUser.uid,
+      participantName: widget.currentUser.displayName,
+      isTeacher: false,
+    );
+    if (mounted && config['token'] != null && (config['token'] as String).isNotEmpty) {
+      setState(() {
+        _liveKitConfig = config;
+      });
+    }
   }
 
   @override
