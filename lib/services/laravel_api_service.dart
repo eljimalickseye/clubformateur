@@ -14,9 +14,29 @@ class LaravelApiService {
   );
 
   String? _authToken;
+  final Map<String, String> _etagCache = {};
+  final Map<String, Map<String, dynamic>> _responseCache = {};
 
   void setAuthToken(String? token) {
+    if (_authToken != token) {
+      clearCache();
+    }
     _authToken = token;
+  }
+
+  void clearCache() {
+    _etagCache.clear();
+    _responseCache.clear();
+  }
+
+  void _invalidateCacheFor(String endpoint) {
+    if (endpoint.startsWith('/courses')) {
+      _etagCache.removeWhere((k, _) => k.startsWith('/courses'));
+      _responseCache.removeWhere((k, _) => k.startsWith('/courses'));
+    } else {
+      _etagCache.remove(endpoint);
+      _responseCache.remove(endpoint);
+    }
   }
 
   Map<String, String> get _headers => {
@@ -35,19 +55,38 @@ class LaravelApiService {
     return false;
   }
 
+  /// Exécute une requête GET avec support des en-têtes ETag et révalidation conditionnelle HTTP 304
   Future<Map<String, dynamic>?> get(String endpoint) async {
     if (_isMixedContentBlocked) return null;
     try {
+      final headers = Map<String, String>.from(_headers);
+      final cachedEtag = _etagCache[endpoint];
+      if (cachedEtag != null) {
+        headers['If-None-Match'] = cachedEtag;
+      }
+
       final response = await http
-          .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .get(Uri.parse('$baseUrl$endpoint'), headers: headers)
           .timeout(const Duration(seconds: 3));
+
+      // Contenu inchangé validé par le serveur
+      if (response.statusCode == 304) {
+        return _responseCache[endpoint];
+      }
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        final etag = response.headers['etag'];
+        if (etag != null) {
+          _etagCache[endpoint] = etag;
+          _responseCache[endpoint] = decoded;
+        }
+        return decoded;
       }
     } catch (e) {
       debugPrint('Laravel API GET $endpoint offline/fallback: $e');
     }
-    return null;
+    return _responseCache[endpoint];
   }
 
   Future<Map<String, dynamic>?> post(String endpoint, Map<String, dynamic> body) async {
@@ -61,6 +100,7 @@ class LaravelApiService {
           )
           .timeout(const Duration(seconds: 3));
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        _invalidateCacheFor(endpoint);
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
     } catch (e) {
@@ -80,6 +120,7 @@ class LaravelApiService {
           )
           .timeout(const Duration(seconds: 3));
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        _invalidateCacheFor(endpoint);
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
     } catch (e) {
@@ -99,6 +140,7 @@ class LaravelApiService {
           )
           .timeout(const Duration(seconds: 3));
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        _invalidateCacheFor(endpoint);
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
     } catch (e) {
@@ -113,7 +155,11 @@ class LaravelApiService {
       final response = await http
           .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
           .timeout(const Duration(seconds: 3));
-      return response.statusCode >= 200 && response.statusCode < 300;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _invalidateCacheFor(endpoint);
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('Laravel API DELETE $endpoint offline/fallback: $e');
       return false;
@@ -130,8 +176,11 @@ class LaravelApiService {
       }
       final streamed = await request.send().timeout(const Duration(seconds: 4));
       final response = await http.Response.fromStream(streamed);
-      if (response.body.isNotEmpty) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _invalidateCacheFor(endpoint);
+        if (response.body.isNotEmpty) {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        }
       }
     } catch (e) {
       debugPrint('Laravel API DELETE $endpoint offline/fallback: $e');
