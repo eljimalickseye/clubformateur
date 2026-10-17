@@ -131,13 +131,10 @@ class ProgressService {
 
     _controllers['${userId}_$courseId']?.add(updated);
 
-    // 2. Sync with Laravel API (/api/v1/enrollments/{id}/progress)
-    unawaited(_api.patch('/enrollments/${userId}_$courseId/progress', {
-      'user_id': userId,
-      'course_id': courseId,
-      'lesson_id': lessonId,
-      'progress_percent': (percentage * 100).round(),
-      'completed_lesson_ids': updated.completedLessonIds,
+    // 2. Sync with Laravel API (/api/v1/students/{studentId}/progress/{courseId})
+    unawaited(_api.put('/students/$userId/progress/$courseId', {
+      'progressPercent': (percentage * 100).round(),
+      'completedLessons': updated.completedLessonIds,
     }));
 
     // 3. Save to Firestore
