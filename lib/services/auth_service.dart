@@ -367,7 +367,7 @@ class AuthService {
         if (e.code == 'email-already-in-use') {
           throw Exception('Cette adresse email est déjà utilisée.');
         } else if (e.code == 'weak-password') {
-          throw Exception('Le mot de passe doit comporter au moins 6 caractères.');
+          throw Exception('Le mot de passe doit comporter au moins 8 caractères.');
         }
       }
       rethrow;

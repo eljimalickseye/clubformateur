@@ -436,7 +436,7 @@ class _RegisterFullScreenState extends State<RegisterFullScreen> {
                                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                 ),
                               ),
-                              validator: (v) => (v == null || v.length < 6) ? 'Le mot de passe doit comporter au moins 6 caractères.' : null,
+                              validator: (v) => (v == null || v.length < 8) ? 'Le mot de passe doit comporter au moins 8 caractères.' : null,
                             ),
                             const SizedBox(height: 16),
 

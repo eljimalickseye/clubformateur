@@ -125,8 +125,8 @@ class _AuthFlowDialogState extends State<AuthFlowDialog> {
       setState(() => _errorMessage = 'Veuillez saisir une adresse email valide.');
       return;
     }
-    if (password.length < 6) {
-      setState(() => _errorMessage = 'Le mot de passe doit contenir au moins 6 caractères.');
+    if (password.length < 8) {
+      setState(() => _errorMessage = 'Le mot de passe doit contenir au moins 8 caractères.');
       return;
     }
     if (!_acceptTerms) {
