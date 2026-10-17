@@ -119,12 +119,8 @@ class EnrollmentService {
 
     // 4. Sync with Laravel API (/api/v1/enrollments)
     unawaited(_api.post('/enrollments', {
-      'user_id': userId,
-      'student_name': userName,
-      'course_id': course.id,
-      'course_title': course.title,
-      'amount_paid': course.price,
-      'payment_method': paymentMethod,
+      'courseId': course.id,
+      'paymentMethod': paymentMethod,
     }));
 
     // 5. Save to Firestore (enrollments & courses count)
