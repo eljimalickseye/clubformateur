@@ -2,7 +2,7 @@ name: olivia
 description: "Club des Formateurs - Apprendre, Enseigner, Évoluer"
 publish_to: 'none'
 
-version: 1.0.22+122
+version: 1.0.25+125
 
 environment:
   sdk: ^3.9.2

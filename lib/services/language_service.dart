@@ -58,10 +58,21 @@ class LanguageService {
     if (map != null && map.containsKey(key)) {
       return map[key]!;
     }
+    final enMap = _dict['en'];
+    final frMap = _dict['fr'];
     if (defaultFr != null) {
-      return isEnglish ? _dict['en']?[key] ?? defaultFr : defaultFr;
+      if (isEnglish && enMap != null && enMap.containsKey(key)) {
+        return enMap[key]!;
+      }
+      return defaultFr;
     }
-    return _dict['en']?[key] ?? _dict['fr']?[key] ?? key;
+    if (enMap != null && enMap.containsKey(key)) {
+      return enMap[key]!;
+    }
+    if (frMap != null && frMap.containsKey(key)) {
+      return frMap[key]!;
+    }
+    return key;
   }
 
   static final Map<String, Map<String, String>> _dict = {

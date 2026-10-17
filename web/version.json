@@ -1,13 +1,13 @@
 {
-  "version": "1.0.24",
-  "buildNumber": 124,
+  "version": "1.0.25",
+  "buildNumber": 125,
   "title": "Mise à jour disponible ! 🎉",
-  "releaseNotes": "Fluidité : défilement plus léger sur iPhone, images redimensionnées, carrousels qui ne bloquent plus le scroll.",
+  "releaseNotes": "Traduction anglaise complète et inscription automatique dans la classe.",
   "highlights": [
-    "Scroll plus fluide sur iPhone et Safari",
-    "Les carrousels ne défilent plus tout seuls sur mobile",
-    "Images décodées à la taille d'affichage pour alléger le GPU"
+    "Traduction fluide et réactive anglais / français",
+    "Rattachement automatique des étudiants aux classes",
+    "Optimisations de sécurité et fluidité"
   ],
-  "releasedAt": "2026-10-10T00:40:00Z",
+  "releasedAt": "2026-10-17T12:25:00Z",
   "isMandatory": false
 }
