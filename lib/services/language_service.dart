@@ -59,7 +59,7 @@ class LanguageService {
       return map[key]!;
     }
     if (defaultFr != null) {
-      return isEnglish ? _dict['en']?[key] ?? defaultFr : defaultFr;
+      return isEnglish ? (_dict['en']?[key] ?? defaultFr) : defaultFr;
     }
     return _dict['en']?[key] ?? _dict['fr']?[key] ?? key;
   }
