@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/legal_document_model.dart';
+import 'laravel_api_service.dart';
 
 class LegalService {
   static final LegalService _instance = LegalService._internal();
@@ -120,7 +121,10 @@ class LegalService {
       await prefs.setBool('legal_accepted_${userId}_$documentId', true);
     } catch (_) {}
 
-    // 2. Synchronisation Firestore avec timeout
+    // 2. Synchronisation sécurisée avec le backend Laravel
+    unawaited(LaravelApiService().post('/legal-documents/$documentId/accept', {}));
+
+    // 3. Synchronisation Firestore avec timeout
     final db = _db;
     if (db == null) return;
 

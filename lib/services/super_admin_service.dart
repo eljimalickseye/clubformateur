@@ -432,13 +432,7 @@ class SuperAdminService {
   /// Mettre à jour un document légal
   Future<void> updateLegalDocument(
       String docId, String content, String version) async {
-    unawaited(_api.post('/legal-documents/sign', {
-      'user_id': 'admin',
-      'type': docId,
-      'title': docId,
-      'version': version,
-      'signature_data': content,
-    }));
+    unawaited(_api.post('/legal-documents/$docId/accept', {}));
     try {
       await _db?.collection('legal_documents').doc(docId).set({
         'content': content,

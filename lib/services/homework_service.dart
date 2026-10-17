@@ -125,8 +125,9 @@ class HomeworkService {
   Future<void> _syncRemote() async {
     try {
       final res = await _api.get('/homeworks');
-      if (res != null && res['data'] is List) {
-        final list = (res['data'] as List).map((item) {
+      final rawList = (res?['homeworks'] ?? res?['data']) as List?;
+      if (rawList != null) {
+        final list = rawList.map((item) {
           final m = Map<String, dynamic>.from(item as Map);
           return HomeworkModel.fromMap(m, m['id']?.toString() ?? '');
         }).toList();
@@ -182,14 +183,10 @@ class HomeworkService {
     _broadcastAll();
 
     unawaited(_api.post('/homeworks', {
-      'course_id': courseId,
-      'course_title': courseName,
-      'student_id': teacherId,
-      'student_name': teacherName,
+      'courseId': courseId,
       'title': title,
-      'description': description,
-      'submission_url': attachmentUrls.isNotEmpty ? attachmentUrls.first : null,
-      'points': points,
+      'instructions': description,
+      if (attachmentUrls.isNotEmpty) 'attachmentUrl': attachmentUrls.first,
     }));
 
     try {
@@ -355,14 +352,17 @@ class HomeworkService {
     await _saveCache();
     _broadcastAll();
 
+    final hw = _cachedHomeworks.where((h) => h.id == homeworkId).firstOrNull;
+    final targetCourseId = hw?.courseId ?? homeworkId;
+    final hwTitle = hw?.title ?? 'Soumission devoir $homeworkId';
+    final hwInstructions = hw?.description ?? '';
+
     unawaited(_api.post('/homeworks', {
-      'course_id': homeworkId,
-      'student_id': studentId,
-      'student_name': studentName,
-      'title': 'Soumission devoir $homeworkId',
-      'submission_url': fileUrls.isNotEmpty ? fileUrls.first : null,
-      'submission_type': submissionType,
-      'content': blankPageContent,
+      'courseId': targetCourseId,
+      'title': hwTitle,
+      'instructions': hwInstructions,
+      'submissionText': blankPageContent,
+      if (fileUrls.isNotEmpty) 'attachmentUrl': fileUrls.first,
     }));
 
     try {
@@ -379,8 +379,6 @@ class HomeworkService {
     } catch (_) {}
 
     // Notifier le correcteur et le professeur
-    final hw = _cachedHomeworks.where((h) => h.id == homeworkId).firstOrNull;
-    final hwTitle = hw?.title ?? 'Devoir';
     final teacherId = hw?.teacherId ?? 'demo_teacher_cheikh';
 
     unawaited(
@@ -512,11 +510,9 @@ class HomeworkService {
     await _saveCache();
     _broadcastAll();
 
-    unawaited(_api.post('/homeworks/$homeworkId/grade', {
-      'corrector_id': correctorId,
-      'corrector_name': correctorName,
-      'score': (note ?? 16).round(),
-      'feedback': comment,
+    unawaited(_api.patch('/homeworks/$homeworkId/grade', {
+      'grade': (note ?? 16).toDouble(),
+      if (comment.isNotEmpty) 'feedback': comment,
     }));
 
     try {
